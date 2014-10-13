@@ -3,11 +3,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 
-public class FileButtonActionListener implements ActionListener{
+public class ModelButtonActionListener implements ActionListener{
 	private GUI gui;
 	private FileDialog dlg;
 	
-	public FileButtonActionListener(GUI _gui, FileDialog _dlg)
+	public ModelButtonActionListener(GUI _gui, FileDialog _dlg)
 	{
 		gui=_gui;
 		dlg=_dlg;
@@ -15,10 +15,12 @@ public class FileButtonActionListener implements ActionListener{
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
+		System.setProperty("apple.awt.fileDialogForDirectories", "true");
 		dlg.setVisible(true);
-		gui.setFilepath(dlg.getDirectory()+dlg.getFile());
+		System.setProperty("apple.awt.fileDialogForDirectories", "false");
+		gui.setModelPath(dlg.getDirectory()+dlg.getFile()+"/");
 		if(dlg.getDirectory()==null || dlg.getFile()==null)
-			gui.setFilepath(null);
+			gui.setModelPath(null);
 		if(gui instanceof GUI1)
 			gui.getMainwindow().setTitle("Dependency Parser - Data: "+(gui.getFilepath()==null?"No Data File":gui.getFilepath()));
 		if(gui instanceof GUI2)

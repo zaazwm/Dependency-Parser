@@ -171,6 +171,20 @@ public class ApplicationControl {
 		}
 	}
 	
+	public static void run(String dataPath, String modelPath) throws IOException, InvalidInputDataException, ClassNotFoundException {
+		//run the program, for extended usage
+		if(!testMark) {
+			TrainModel(dataPath, modelPath);
+			System.out.println("Training Finished!");
+		}
+		else {
+			TestModel(dataPath, modelPath);
+			System.out.println("Test Finished!");
+			if(devMark)
+				CompareResult(dataPath);
+		}
+	}
+	
 	public static void TrainModel(String dataPath) throws IOException, InvalidInputDataException {
 		LinkedList<Feature> fl = new LinkedList<Feature>();
 		//read file
@@ -304,6 +318,187 @@ public class ApplicationControl {
 			
 			if(argsReader)
 				lc.readModel(dataDir+"/dp.model");
+			else
+				lc.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
+		}
+		
+		Reader rd;
+		if(argsReader)
+			rd = new Reader(dataPath);
+		else
+			rd = new Reader("/Users/zaa/Desktop/VIS hiwi/dep_parsing/wsj_dev.conll06");
+		Writer wt;
+		if(argsReader)
+			wt = new Writer(dataPath+".result");
+		else
+			wt = new Writer("/Users/zaa/Desktop/VIS hiwi/dep_parsing/wsj_dev.result.conll06");
+		
+		System.out.println("Reading model done.");
+		//read sentences from test file and do parsing
+		int count=0;
+		while(rd.hasNext()) {
+			count++;
+			Sentence st = rd.readNextTest();
+			if(ArcStandard) {
+				if(!modelLibSVM) 
+					ArcStandardDecoder.doParsing(pc, st);
+				else
+					ArcStandardDecoder.doParsing(lc, st);
+					
+			}
+			else {
+				if(!modelLibSVM) 
+					ArcEagerDecoder.doParsing(pc, st);
+				else
+					ArcEagerDecoder.doParsing(lc, st);
+			}
+			//write parsing result to file
+			wt.write(st);
+			
+			if(count%100==0) {
+				System.out.println(count+" sentences labeled.");
+			}
+		}
+		
+		rd.close();
+		wt.close();
+	}
+	
+	public static void TrainModel(String dataPath, String mPath) throws IOException, InvalidInputDataException {
+		LinkedList<Feature> fl = new LinkedList<Feature>();
+		//read file
+		@SuppressWarnings("unused")
+		String dataDir = null;
+		if(argsReader)
+			dataDir = new File(dataPath).getParent();
+		Reader rd;
+		if(argsReader)
+			rd = new Reader(dataPath);
+		else {
+			if(smallTrainData)
+				rd = new Reader("/Users/zaa/Desktop/VIS hiwi/dep_parsing/wsj_train.only-projective.first-5k.conll06");
+			else
+				rd = new Reader("/Users/zaa/Desktop/VIS hiwi/dep_parsing/wsj_train.only-projective.conll06");
+		}
+			
+		//read sentences and calc & save configurations
+		while(rd.hasNext()) {
+			LinkedList<Configuration> cl = new LinkedList<Configuration>();
+			if(ArcStandard) {
+				ArcStandardDecoder.buildConfiguration(rd.readNext(), cl);
+			}
+			else {
+				ArcEagerDecoder.buildConfiguration(rd.readNext(), cl);
+			}
+			
+			for(Configuration cf : cl) {
+				fl.add(cf.buildFeature());
+			}
+		}
+		
+		rd.close();
+		if(!modelLibSVM) {
+			//use saved configurations to do perceptron
+			Perceptron pc = new Perceptron(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel);
+			System.out.println("Feature number: "+pc.getnFeature());
+			//write model to file
+			File modelPath;
+			if(argsReader)
+				modelPath = new File(mPath+"dp.model");
+			else
+				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
+			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath)));
+			oos.writeObject(pc);
+			oos.close();
+		}
+		else if(!modelLibLinear) {
+			//use saved configurations to do libsvm
+			LibClassifier pc;
+			if(argsReader)
+				pc = new LibSVM(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
+						mPath+"dp.model", mPath+"dp.feature");
+			else
+				pc = new LibSVM(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
+					"/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.feature");
+			System.out.println("Feature number: "+pc.getnFeature()+" ArcTag #: "+pc.getnTag());
+			//write model to file
+			File modelPath;
+			if(argsReader)
+				modelPath = new File(mPath+"dp.mapping");
+			else
+				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.mapping");
+			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath)));
+			oos.writeObject(pc);
+			oos.close();
+		}
+		else {
+			//use saved configurations to do liblinear
+			LibClassifier pc;
+			if(argsReader)
+				pc = new LibLinear(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
+						mPath+"dp.model", mPath+"dp.feature");
+			else
+				pc = new LibLinear(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
+						"/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.feature");
+			System.out.println("Feature number: "+pc.getnFeature()+" ArcTag #: "+pc.getnTag());
+			//write model to file
+			File modelPath;
+			if(argsReader)
+				modelPath = new File(mPath+"dp.mapping");
+			else
+				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.mapping");
+			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath)));
+			oos.writeObject(pc);
+			oos.close();
+		}
+	}
+	
+	public static void TestModel(String dataPath, String mPath) throws FileNotFoundException, IOException, ClassNotFoundException {
+		//read file
+		@SuppressWarnings("unused")
+		String dataDir = null;
+		if(argsReader)
+			dataDir = new File(dataPath).getParent();
+		Perceptron pc = null;
+		LibClassifier lc = null;
+		if(!modelLibSVM) {
+			//read model from file
+			File modelPath;
+			if(argsReader)
+				modelPath = new File(mPath+"dp.model");
+			else
+				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
+			ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath)));
+			pc = (Perceptron) ois.readObject();
+			ois.close();
+		}
+		else if(!modelLibLinear) {
+			//read model from file
+			File modelPath;
+			if(argsReader)
+				modelPath = new File(mPath+"dp.mapping");
+			else
+				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.mapping");
+			ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath)));
+			lc = (LibSVM) ois.readObject();
+			ois.close();
+			if(argsReader)
+				lc.readModel(mPath+"dp.model");
+			else
+				lc.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
+		}
+		else {
+			File modelPath;
+			if(argsReader)
+				modelPath = new File(mPath+"dp.mapping");
+			else
+				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.mapping");
+			ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath)));
+			lc = (LibLinear) ois.readObject();
+			ois.close();
+			
+			if(argsReader)
+				lc.readModel(mPath+"dp.model");
 			else
 				lc.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
 		}

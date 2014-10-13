@@ -15,15 +15,23 @@ public class RunButtonActionListener implements ActionListener{
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		if(gui.filepath==null) {
-			JOptionPane.showMessageDialog(gui.mainwindow, "No file selected!", "No File", JOptionPane.WARNING_MESSAGE);
-			gui.filebtn.requestFocus();
+		if(gui.getFilepath()==null) {
+			JOptionPane.showMessageDialog(gui.getMainwindow(), "No file selected!", "No File", JOptionPane.WARNING_MESSAGE);
+			gui.getFilebtn().requestFocus();
 			return;
 		}
-		File fl = new File(gui.filepath);
+		if(gui instanceof GUI2) {
+			File ml = new File(gui.getFilepath());
+			if(!ml.exists()) {
+				JOptionPane.showMessageDialog(gui.getMainwindow(), "Not valid model folder!", "Invalid Model", JOptionPane.WARNING_MESSAGE);
+				gui.getFilebtn2().requestFocus();
+				return;
+			}
+		}
+		File fl = new File(gui.getFilepath());
 		if(!fl.exists()) {
-			JOptionPane.showMessageDialog(gui.mainwindow, "Not valid file!", "Invalid File", JOptionPane.WARNING_MESSAGE);
-			gui.filebtn.requestFocus();
+			JOptionPane.showMessageDialog(gui.getMainwindow(), "Not valid file!", "Invalid File", JOptionPane.WARNING_MESSAGE);
+			gui.getFilebtn().requestFocus();
 		}
 		else
 			gui.run();
