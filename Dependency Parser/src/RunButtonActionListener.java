@@ -21,6 +21,11 @@ public class RunButtonActionListener implements ActionListener{
 			return;
 		}
 		if(gui instanceof GUI2) {
+			if(gui.getModelPath()==null) {
+				JOptionPane.showMessageDialog(gui.getMainwindow(), "No model folder selected!", "No Model", JOptionPane.WARNING_MESSAGE);
+				gui.getFilebtn2().requestFocus();
+				return;
+			}
 			File ml = new File(gui.getFilepath());
 			if(!ml.exists()) {
 				JOptionPane.showMessageDialog(gui.getMainwindow(), "Not valid model folder!", "Invalid Model", JOptionPane.WARNING_MESSAGE);
