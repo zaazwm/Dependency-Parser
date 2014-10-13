@@ -11,6 +11,7 @@ import javax.swing.JPanel;
 
 import de.bwaldvogel.liblinear.InvalidInputDataException;
 
+//A simple GUI saving/reading model in a separated folder of the data file.
 
 public class GUI2 implements GUI{
 	
