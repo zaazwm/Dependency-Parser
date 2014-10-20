@@ -386,7 +386,7 @@ public class ArcStandardDecoder {
 		if(s.getBuffer().isEmpty() || s.getStack().isEmpty())  //nothing to swap
 			return false;
 		if(s.getBuffer().peekFirst().getProjectiveID()<s.getStack().peekLast().getProjectiveID()  //if the stack top is after buffer first in projective
-				&& s.getBuffer().peekFirst().getMPCID()!=s.getStack().peekLast().getMPCID()) {  //and the MPCs are different
+				&& (s.getBuffer().size()>2?s.getBuffer().peekFirst().getMPCID()!=s.getBuffer().get(1).getMPCID():true)) {  //and the MPCs are different
 			return true;
 		}
 		return false;
