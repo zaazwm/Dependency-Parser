@@ -9,11 +9,14 @@ public class ArcStandardDecoder {
 	public static final String transition3rdName = "Swap"; 
 	private static int nonProjectiveMemo = 0;
 	
+	private static final boolean SwapMPC = true;
+	private static int swapCount = 0;
+	
 	public static void buildConfiguration(Sentence st,LinkedList<Configuration> cList) {
 		preProcess(st);
 		State s = new State(st);
-		//while(!(s.getBuffer().isEmpty() && s.getStack().size()==1)) {
-		while(!s.getBuffer().isEmpty()) {
+		while(!(s.getBuffer().isEmpty() && s.getStack().size()==1)) {
+		//while(!s.getBuffer().isEmpty()) {
 			if(canLeftArc(s)) {
 				//add configuration to list
 				cList.add(new Configuration(s.clone(),st,"LeftArc",s.getStack().peekLast().getRel()));
@@ -56,6 +59,7 @@ public class ArcStandardDecoder {
 				//s.getBuffer().addFirst(s.getStack().remove(s.getStack().size()-2));
 				//s.getBuffer().addFirst(s.getStack().removeLast());
 				s.getBuffer().add(1, s.getStack().removeLast());
+				swapCount++;
 			}
 			else {
 				//add configuration to list
@@ -65,6 +69,7 @@ public class ArcStandardDecoder {
 					s.getStack().add(s.getBuffer().removeFirst());
 				}catch(NoSuchElementException e) {
 					//to debug if buffer is empty
+					System.out.println("------Shift Dead Loop!------");
 					for(Word w : st.getWdList()) {
 						System.out.println("Word#"+w.getID()+" form:"+w.getForm()+" head:"+w.getHead()+" projective:"+w.getProjectiveID());
 					}
@@ -76,6 +81,7 @@ public class ArcStandardDecoder {
 								+" cf: "+cf.getConfToString());
 						co++;
 					}
+					break;
 				}
 			}
 		}
@@ -322,7 +328,19 @@ public class ArcStandardDecoder {
 		if(s.getHeads()[s.getStack().peekLast().getID()]!=-1)  //top of stack has head
 			return false;
 		if(s.getStack().peekLast().getHead()==s.getBuffer().peekFirst().getID()) {  //found the arc
-			return true;
+			int count=0;
+			for(Word w : s.getStack()) {
+				if(w.getHead()==s.getStack().peekLast().getID())
+					count++;
+			}
+			for(Word w : s.getBuffer()) {
+				if(w.getHead()==s.getStack().peekLast().getID())
+					count++;
+			}
+			if(count>0)  //not having all children
+				return false;
+			else  //has all children
+				return true;
 		}
 		else
 			return false;
@@ -353,9 +371,22 @@ public class ArcStandardDecoder {
 	}
 	
 	private static boolean canSwap(State s) {
+		if(SwapMPC)
+			return canSwapMPC(s);
+		
 		if(s.getBuffer().isEmpty() || s.getStack().isEmpty())  //nothing to swap
 			return false;
 		if(s.getBuffer().peekFirst().getProjectiveID()<s.getStack().peekLast().getProjectiveID()) {  //if the stack top is after buffer first in projective
+			return true;
+		}
+		return false;
+	}
+	
+	private static boolean canSwapMPC(State s) {
+		if(s.getBuffer().isEmpty() || s.getStack().isEmpty())  //nothing to swap
+			return false;
+		if(s.getBuffer().peekFirst().getProjectiveID()<s.getStack().peekLast().getProjectiveID()  //if the stack top is after buffer first in projective
+				&& s.getBuffer().peekFirst().getMPCID()!=s.getStack().peekLast().getMPCID()) {  //and the MPCs are different
 			return true;
 		}
 		return false;
@@ -369,6 +400,8 @@ public class ArcStandardDecoder {
 		}
 		projectiveCount = 0;
 		findProjective(0, st.getWdList());
+		if(SwapMPC)
+			findMPC(st);
 		
 		//checkProjective(st);
 		checkProjectiveNoPrint(st);
@@ -433,6 +466,54 @@ public class ArcStandardDecoder {
 		}
 	}
 	
+	private static void findMPC(Sentence st) {
+		State s = new State(st);
+		int mpcCount=0;
+		while(!s.getBuffer().isEmpty()) {
+			if(canLeftArc(s)) {
+				//add configuration to list
+				s.getStack().peekLast().setMPChead(s.getBuffer().peekFirst().getID());
+				
+				//do leftarc
+				s.getStack().removeLast();
+			}
+			else if(canRightArc(s)) {
+				//add configuration to list
+				s.getBuffer().peekFirst().setMPChead(s.getStack().peekLast().getID());
+				
+				//do rightarc
+				s.getBuffer().removeFirst();
+				s.getBuffer().addFirst(s.getStack().removeLast());
+			}
+			else {
+				//add configuration to list
+				
+				//do shift
+				s.getStack().add(s.getBuffer().removeFirst());	
+			}
+		}
+		
+		for(Word w : st.getWdList()) {
+			if(w.getMPChead()==-1) {
+				w.setMPCID(mpcCount);
+				mpcCount++;
+			}
+		}
+		for(Word w : st.getWdList()) {
+			if(w.getMPChead()!=-1) {
+				w.setMPCID(findMPCAncestor(st, w.getID()));
+			}
+		}
+	}
+	
+	private static int findMPCAncestor(Sentence st, int current) {
+		Word w = st.getWdList().get(current);
+		if(w.getMPChead()==-1)
+			return w.getMPCID();
+		else
+			return findMPCAncestor(st, w.getMPChead());
+	}
+	
 	public static void resetMemo() {
 		nonProjectiveMemo = 0;
 	}
@@ -441,6 +522,14 @@ public class ArcStandardDecoder {
 		return nonProjectiveMemo;
 	}
 	
+	public static int readSwco() {
+		return swapCount;
+	}
+	
+	public static void resetSwco() {
+		swapCount = 0;
+	}
+
 	public static void main(String[] args) {
 		//test entry to arcstandarddecoder
 		//--calc configuration from a sample sentence (from slides)
@@ -490,7 +579,7 @@ public class ArcStandardDecoder {
 		buildConfiguration(s,cl2);
 		
 		for(Word w : s.getWdList()) {
-			System.out.println("Word#"+w.getID()+" form:"+w.getForm()+" head:"+w.getHead()+" projective:"+w.getProjectiveID());
+			System.out.println("Word#"+w.getID()+" form:"+w.getForm()+" head:"+w.getHead()+" projective:"+w.getProjectiveID()+" MPC:"+w.getMPCID()+" MPChead:"+w.getMPChead());
 		}
 		System.out.println();
 		
@@ -501,6 +590,7 @@ public class ArcStandardDecoder {
 					+" cf: "+cf.getConfToString());
 			co++;
 		}
+		System.out.println("swap count = "+readSwco());
 	}
 	
 }
