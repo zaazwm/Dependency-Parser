@@ -591,6 +591,39 @@ public class ArcStandardDecoder {
 			co++;
 		}
 		System.out.println("swap count = "+readSwco());
+		
+		resetSwco();
+		
+		//--calc configuration from a non-projective sentence
+		System.out.println("\n\nSentence3: ");
+		
+		LinkedList<Configuration> cl3 = new LinkedList<Configuration>();
+		LinkedList<Word> wl3 = new LinkedList<Word>();
+		wl3.add(new Word(1, "Who", "who", "---", 7));
+		wl3.add(new Word(2, "did", "do", "---", 0));
+		wl3.add(new Word(3, "you", "you", "---", 2));
+		wl3.add(new Word(4, "send", "send", "---", 2));
+		wl3.add(new Word(5, "the", "the", "---", 6));
+		wl3.add(new Word(6, "letter", "letter", "---", 4));
+		wl3.add(new Word(7, "to", "to", "---", 4));
+		wl3.add(new Word(8, "?", "?", "---", 2));
+		s = new Sentence(wl3);
+		buildConfiguration(s,cl3);
+				
+		for(Word w : s.getWdList()) {
+			System.out.println("Word#"+w.getID()+" form:"+w.getForm()+" head:"+w.getHead()+" projective:"+w.getProjectiveID()+" MPC:"+w.getMPCID()+" MPChead:"+w.getMPChead());
+		}
+		System.out.println();
+				
+		co=1;
+		for(Configuration cf : cl3) {
+			System.out.println("state#"+co+" s: "+(cf.getState().getStack().isEmpty()?"":cf.getState().getStack().peekLast().getForm())
+					+" b: "+(cf.getState().getBuffer().isEmpty()?"":cf.getState().getBuffer().peekFirst().getForm())
+					+" cf: "+cf.getConfToString());
+			co++;
+		} 
+		System.out.println("swap count = "+readSwco());
+		resetSwco();
 	}
 	
 }
