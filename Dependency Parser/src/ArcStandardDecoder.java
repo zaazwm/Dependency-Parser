@@ -1,13 +1,19 @@
 import java.util.LinkedList;
+import java.util.NoSuchElementException;
 
 
 public class ArcStandardDecoder {
 	
-	public static final int nLabel = 3;
+	public static final int nLabel = 4;
+	private static int projectiveCount = 0;
+	public static final String transition3rdName = "Swap"; 
+	private static int nonProjectiveMemo = 0;
 	
 	public static void buildConfiguration(Sentence st,LinkedList<Configuration> cList) {
+		preProcess(st);
 		State s = new State(st);
-		while(!(s.getBuffer().isEmpty() && s.getStack().size()==1)) {
+		//while(!(s.getBuffer().isEmpty() && s.getStack().size()==1)) {
+		while(!s.getBuffer().isEmpty()) {
 			if(canLeftArc(s)) {
 				//add configuration to list
 				cList.add(new Configuration(s.clone(),st,"LeftArc",s.getStack().peekLast().getRel()));
@@ -41,17 +47,43 @@ public class ArcStandardDecoder {
 				s.getBuffer().removeFirst();
 				s.getBuffer().addFirst(s.getStack().removeLast());
 			}
+			else if(canSwap(s)) {
+				//add configuration to list
+				cList.add(new Configuration(s.clone(),st,"Swap",null));
+				
+				//do swap
+				//s.getStack().add(s.getBuffer().removeFirst());
+				//s.getBuffer().addFirst(s.getStack().remove(s.getStack().size()-2));
+				//s.getBuffer().addFirst(s.getStack().removeLast());
+				s.getBuffer().add(1, s.getStack().removeLast());
+			}
 			else {
 				//add configuration to list
 				cList.add(new Configuration(s.clone(),st,"Shift",null));
 				//do shift
-				s.getStack().add(s.getBuffer().removeFirst());
+				try{
+					s.getStack().add(s.getBuffer().removeFirst());
+				}catch(NoSuchElementException e) {
+					//to debug if buffer is empty
+					for(Word w : st.getWdList()) {
+						System.out.println("Word#"+w.getID()+" form:"+w.getForm()+" head:"+w.getHead()+" projective:"+w.getProjectiveID());
+					}
+					System.out.println();
+					int co=1;
+					for(Configuration cf : cList) {
+						System.out.println("state#"+co+" s: "+(cf.getState().getStack().isEmpty()?"":cf.getState().getStack().peekLast().getForm())
+								+" b: "+(cf.getState().getBuffer().isEmpty()?"":cf.getState().getBuffer().peekFirst().getForm())
+								+" cf: "+cf.getConfToString());
+						co++;
+					}
+				}
 			}
 		}
 	}
 	
 	public static void doParsing(Perceptron model, Sentence st) {
 		State s = new State(st);
+		LinkedList<DoubleWord> swapMemo = new LinkedList<DoubleWord>();
 		while(!(s.getBuffer().isEmpty())) {
 			int bestTrans = model.findBest(s.buildFeature(st));
 			if(bestTrans==0) {  //shift
@@ -126,6 +158,28 @@ public class ArcStandardDecoder {
 					System.out.println("RightArc Fail!");
 				}
 			}
+			else if(bestTrans==3) {  //swap
+				if(!s.getStack().isEmpty() && !swapMemo.contains(new DoubleWord(s.getStack().getLast(), s.getBuffer().getFirst()))) {
+					//do swap
+					//s.getStack().add(s.getBuffer().removeFirst());
+					//s.getBuffer().addFirst(s.getStack().remove(s.getStack().size()-2));
+					//s.getBuffer().addFirst(s.getStack().removeLast());
+					s.getBuffer().add(1, s.getStack().removeLast());
+					swapMemo.add(new DoubleWord(s.getBuffer().get(0), s.getBuffer().get(1)));
+					swapMemo.add(new DoubleWord(s.getBuffer().get(1), s.getBuffer().get(0)));
+				}
+				else {
+					System.out.println("Swap Fail! : do Shift");
+					
+					if(!s.getBuffer().isEmpty()) {
+						//if fail, do shift
+						s.getStack().add(s.getBuffer().removeFirst());
+					}
+					else {
+						System.out.println("Swap-Shift Fail!");
+					}
+				}
+			}
 			else {
 				System.out.println("Error Transition with: stack-"+s.getStack().peekLast().getForm()+" buffer-"+s.getBuffer().peekFirst().getForm());
 			}
@@ -134,6 +188,7 @@ public class ArcStandardDecoder {
 	
 	public static void doParsing(LibClassifier model, Sentence st) {
 		State s = new State(st);
+		LinkedList<DoubleWord> swapMemo = new LinkedList<DoubleWord>();
 		while(!(s.getBuffer().isEmpty())) {
 			ArcTag bestTrans = model.findBest(s.buildFeature(st));
 			if(bestTrans.getTransition()==0) {  //shift
@@ -231,6 +286,28 @@ public class ArcStandardDecoder {
 					}
 				}
 			}
+			else if(bestTrans.getTransition()==3) {  //swap
+				if(!s.getStack().isEmpty() && !swapMemo.contains(new DoubleWord(s.getStack().getLast(), s.getBuffer().getFirst()))) {
+					//do swap
+					//s.getStack().add(s.getBuffer().removeFirst());
+					//s.getBuffer().addFirst(s.getStack().remove(s.getStack().size()-2));
+					//s.getBuffer().addFirst(s.getStack().removeLast());
+					s.getBuffer().add(1, s.getStack().removeLast());
+					swapMemo.add(new DoubleWord(s.getBuffer().get(0), s.getBuffer().get(1)));
+					swapMemo.add(new DoubleWord(s.getBuffer().get(1), s.getBuffer().get(0)));
+				}
+				else {
+					System.out.println("Swap Fail! : do Shift");
+					
+					if(!s.getBuffer().isEmpty()) {
+						//if fail, do shift
+						s.getStack().add(s.getBuffer().removeFirst());
+					}
+					else {
+						System.out.println("Swap-Shift Fail!");
+					}
+				}
+			}
 			else {
 				System.out.println("Error Transition with: stack-"+s.getStack().peekLast().getForm()+" buffer-"+s.getBuffer().peekFirst().getForm());
 			}
@@ -275,9 +352,99 @@ public class ArcStandardDecoder {
 			return false;
 	}
 	
+	private static boolean canSwap(State s) {
+		if(s.getBuffer().isEmpty() || s.getStack().isEmpty())  //nothing to swap
+			return false;
+		if(s.getBuffer().peekFirst().getProjectiveID()<s.getStack().peekLast().getProjectiveID()) {  //if the stack top is after buffer first in projective
+			return true;
+		}
+		return false;
+	}
+	
+	private static void preProcess(Sentence st) {
+		//analyze the projective tree
+		for(Word w: st.getWdList()) {
+			if(w.getHead()!=-1)
+				st.getWdList().get(w.getHead()).addChildren(w.getID());
+		}
+		projectiveCount = 0;
+		findProjective(0, st.getWdList());
+		
+		//checkProjective(st);
+		checkProjectiveNoPrint(st);
+	}
+	
+	private static void findProjective(int currentNode, LinkedList<Word> st) {
+		//process left children (left arc)
+		if(!st.get(currentNode).getChildren().isEmpty()) {
+			for(Integer childNode : st.get(currentNode).getChildren()) {
+				if(childNode<currentNode) {
+					findProjective(childNode, st);
+				}
+				else {
+					break;
+				}
+			}
+		}
+		
+		//process itself
+		st.get(currentNode).setProjectiveID(projectiveCount);
+		projectiveCount++;
+		
+		//process right children (right arc)
+		if(!st.get(currentNode).getChildren().isEmpty()) {
+			for(Integer childNode : st.get(currentNode).getChildren()) {
+				if(childNode>currentNode) {
+					findProjective(childNode, st);
+				}
+			}
+		}
+	}
+	
+	@SuppressWarnings("unused")
+	private static void checkProjective(Sentence st) {
+		//check if the sentence is projective, count it & print the projective processed one if not
+		boolean projective = true;
+		for(Word w: st.getWdList()) {
+			if(w.getID()!=w.getProjectiveID()) {
+				projective = false;
+			}
+		}
+		if(!projective) {
+			nonProjectiveMemo++;
+			
+			for(Word w : st.getWdList()) {
+				System.out.println("Word#"+w.getID()+" form:"+w.getForm()+" head:"+w.getHead()+" projective:"+w.getProjectiveID());
+			}
+			System.out.println();
+		}
+	}
+	
+	private static void checkProjectiveNoPrint(Sentence st) {
+		//check if the sentence is projective, count it if not
+		boolean projective = true;
+		for(Word w: st.getWdList()) {
+			if(w.getID()!=w.getProjectiveID()) {
+				projective = false;
+			}
+		}
+		if(!projective) {
+			nonProjectiveMemo++;
+		}
+	}
+	
+	public static void resetMemo() {
+		nonProjectiveMemo = 0;
+	}
+	
+	public static int readMemo() {
+		return nonProjectiveMemo;
+	}
+	
 	public static void main(String[] args) {
 		//test entry to arcstandarddecoder
 		//--calc configuration from a sample sentence (from slides)
+		System.out.println("Sentence1: ");
 		LinkedList<Configuration> cl = new LinkedList<Configuration>();
 		LinkedList<Word> wl = new LinkedList<Word>();
 		wl.add(new Word(1, "Not", "not", "---", 2));
@@ -291,6 +458,12 @@ public class ArcStandardDecoder {
 		wl.add(new Word(9, ".", ".", "---", 6));
 		Sentence s = new Sentence(wl);
 		buildConfiguration(s,cl);
+		
+		for(Word w : s.getWdList()) {
+			System.out.println("Word#"+w.getID()+" form:"+w.getForm()+" head:"+w.getHead()+" projective:"+w.getProjectiveID());
+		}
+		System.out.println();
+		
 		int co=1;
 		for(Configuration cf : cl) {
 			System.out.println("state#"+co+" s: "+(cf.getState().getStack().isEmpty()?"":cf.getState().getStack().peekLast().getForm())
@@ -298,5 +471,36 @@ public class ArcStandardDecoder {
 					+" cf: "+cf.getConfToString());
 			co++;
 		}
+		
+		//--calc configuration from a non-projective sentence
+		System.out.println("\n\nSentence2: ");
+		
+		LinkedList<Configuration> cl2 = new LinkedList<Configuration>();
+		LinkedList<Word> wl2 = new LinkedList<Word>();
+		wl2.add(new Word(1, "John", "john", "---", 2));
+		wl2.add(new Word(2, "saw", "see", "---", 0));
+		wl2.add(new Word(3, "a", "a", "---", 4));
+		wl2.add(new Word(4, "dog", "dog", "---", 2));
+		wl2.add(new Word(5, "yesterday", "yesterday", "---", 2));
+		wl2.add(new Word(6, "which", "which", "---", 7));
+		wl2.add(new Word(7, "was", "be", "---", 4));
+		wl2.add(new Word(8, "a", "a", "---", 9));
+		wl2.add(new Word(9, "Poddle", "poddle", "---", 7));
+		s = new Sentence(wl2);
+		buildConfiguration(s,cl2);
+		
+		for(Word w : s.getWdList()) {
+			System.out.println("Word#"+w.getID()+" form:"+w.getForm()+" head:"+w.getHead()+" projective:"+w.getProjectiveID());
+		}
+		System.out.println();
+		
+		co=1;
+		for(Configuration cf : cl2) {
+			System.out.println("state#"+co+" s: "+(cf.getState().getStack().isEmpty()?"":cf.getState().getStack().peekLast().getForm())
+					+" b: "+(cf.getState().getBuffer().isEmpty()?"":cf.getState().getBuffer().peekFirst().getForm())
+					+" cf: "+cf.getConfToString());
+			co++;
+		}
 	}
+	
 }

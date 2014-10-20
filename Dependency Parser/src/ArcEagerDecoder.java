@@ -3,6 +3,7 @@ import java.util.LinkedList;
 
 public class ArcEagerDecoder {
 	public static final int nLabel = 4;
+	public static final String transition3rdName = "Swap"; 
 	
 	public static void buildConfiguration(Sentence st,LinkedList<Configuration> cList) {
 		State s = new State(st);

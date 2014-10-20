@@ -17,7 +17,7 @@ public class Configuration {
 		else if(cf.equalsIgnoreCase("RightArc")) {
 			conf=2;
 		}
-		else if(cf.equalsIgnoreCase("Reduce")) {
+		else if(cf.equalsIgnoreCase("Reduce") || cf.equalsIgnoreCase("Swap")) {
 			conf=3;
 		}
 		else {
@@ -38,7 +38,7 @@ public class Configuration {
 		else if(cf.equalsIgnoreCase("RightArc")) {
 			conf=2;
 		}
-		else if(cf.equalsIgnoreCase("Reduce")) {
+		else if(cf.equalsIgnoreCase("Reduce") || cf.equalsIgnoreCase("Swap")) {
 			conf=3;
 		}
 		else {
@@ -92,7 +92,7 @@ public class Configuration {
 		if(conf==2)
 			return "RightArc";
 		if(conf==3)
-			return "Reduce";
+			return "Reduce-Swap";
 		if(conf==4)
 			return "Unknown";
 		return "Error";
@@ -106,7 +106,7 @@ public class Configuration {
 		if(cf==2)
 			return "RightArc";
 		if(cf==3)
-			return "Reduce";
+			return "Reduce-Swap";
 		if(cf==4)
 			return "Unknown";
 		return "Error";
@@ -122,7 +122,7 @@ public class Configuration {
 		else if(cf.equalsIgnoreCase("RightArc")) {
 			return 2;
 		}
-		else if(cf.equalsIgnoreCase("Reduce")) {
+		else if(cf.equalsIgnoreCase("Reduce-Swap")) {
 			return 3;
 		}
 		else {

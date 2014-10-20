@@ -186,6 +186,7 @@ public class ApplicationControl {
 	}
 	
 	public static void TrainModel(String dataPath) throws IOException, InvalidInputDataException {
+		ArcStandardDecoder.resetMemo();
 		LinkedList<Feature> fl = new LinkedList<Feature>();
 		//read file
 		String dataDir = null;
@@ -240,7 +241,7 @@ public class ApplicationControl {
 			else
 				pc = new LibSVM(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
 					"/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.feature");
-			System.out.println("Feature number: "+pc.getnFeature()+" ArcTag #: "+pc.getnTag());
+			System.out.println("Feature number: "+pc.getnFeature()+" ArcTag #: "+pc.getnTag()+(ArcStandard?(" Non-Projective #: "+ArcStandardDecoder.readMemo()):""));
 			//write model to file
 			File modelPath;
 			if(argsReader)
@@ -260,7 +261,7 @@ public class ApplicationControl {
 			else
 				pc = new LibLinear(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
 						"/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.feature");
-			System.out.println("Feature number: "+pc.getnFeature()+" ArcTag #: "+pc.getnTag());
+			System.out.println("Feature number: "+pc.getnFeature()+" ArcTag #: "+pc.getnTag()+(ArcStandard?(" Non-Projective #: "+ArcStandardDecoder.readMemo()):""));
 			//write model to file
 			File modelPath;
 			if(argsReader)
@@ -366,6 +367,7 @@ public class ApplicationControl {
 	
 	public static void TrainModel(String dataPath, String mPath) throws IOException, InvalidInputDataException {
 		LinkedList<Feature> fl = new LinkedList<Feature>();
+		ArcStandardDecoder.resetMemo();
 		//read file
 		@SuppressWarnings("unused")
 		String dataDir = null;
@@ -420,7 +422,7 @@ public class ApplicationControl {
 			else
 				pc = new LibSVM(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
 					"/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.feature");
-			System.out.println("Feature number: "+pc.getnFeature()+" ArcTag #: "+pc.getnTag());
+			System.out.println("Feature number: "+pc.getnFeature()+" ArcTag #: "+pc.getnTag()+(ArcStandard?(" Non-Projective #: "+ArcStandardDecoder.readMemo()):""));
 			//write model to file
 			File modelPath;
 			if(argsReader)
@@ -440,7 +442,7 @@ public class ApplicationControl {
 			else
 				pc = new LibLinear(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
 						"/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.feature");
-			System.out.println("Feature number: "+pc.getnFeature()+" ArcTag #: "+pc.getnTag());
+			System.out.println("Feature number: "+pc.getnFeature()+" ArcTag #: "+pc.getnTag()+(ArcStandard?(" Non-Projective #: "+ArcStandardDecoder.readMemo()):""));
 			//write model to file
 			File modelPath;
 			if(argsReader)

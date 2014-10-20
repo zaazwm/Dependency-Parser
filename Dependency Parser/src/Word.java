@@ -1,3 +1,5 @@
+import java.util.LinkedList;
+
 
 public class Word {
 	private int _ID;
@@ -7,6 +9,8 @@ public class Word {
 	private String _morph;
 	private int _head;
 	private String _rel;
+	private int _projectiveID;
+	private LinkedList<Integer> _children;
 	//to save information of each word/token
 	public Word(int id, String form, String lemma, String pos, String morph, int head, String rel) {
 		_ID=id;
@@ -16,6 +20,7 @@ public class Word {
 		_morph=morph;
 		_head=head;
 		_rel=rel;
+		_children=new LinkedList<Integer>();
 	}
 	
 	public Word(int id, String form, String lemma, String pos, int head, String rel) {
@@ -26,6 +31,7 @@ public class Word {
 		_morph=null;
 		_head=head;
 		_rel=rel;
+		_children=new LinkedList<Integer>();
 	}
 	
 	public Word(int id, String form, String lemma, String pos, int head) {
@@ -36,6 +42,7 @@ public class Word {
 		_morph=null;
 		_head=head;
 		_rel=null;
+		_children=new LinkedList<Integer>();
 	}
 
 	public int getID() {
@@ -92,6 +99,22 @@ public class Word {
 
 	public void setRel(String _rel) {
 		this._rel = _rel;
+	}
+
+	public int getProjectiveID() {
+		return _projectiveID;
+	}
+
+	public void setProjectiveID(int _projectiveID) {
+		this._projectiveID = _projectiveID;
+	}
+
+	public LinkedList<Integer> getChildren() {
+		return _children;
+	}
+
+	public void addChildren(Integer cid) {
+		this._children.add(cid);
 	}
 	
 }
