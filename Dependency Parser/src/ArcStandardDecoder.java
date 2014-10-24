@@ -313,7 +313,9 @@ public class ArcStandardDecoder {
 					//s.getBuffer().addFirst(s.getStack().remove(s.getStack().size()-2));
 					//s.getBuffer().addFirst(s.getStack().removeLast());
 					s.getBuffer().add(1, s.getStack().removeLast());
-					swapMemo.add(new DoubleWord(s.getBuffer().get(0), s.getBuffer().get(1)));
+					
+					//Memorize the same swap, if swap a loop, keep the original (uncommented if keep the swapped)
+					//swapMemo.add(new DoubleWord(s.getBuffer().get(0), s.getBuffer().get(1)));
 					swapMemo.add(new DoubleWord(s.getBuffer().get(1), s.getBuffer().get(0)));
 				}
 				else {
