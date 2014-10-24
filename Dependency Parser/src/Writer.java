@@ -44,7 +44,10 @@ public class Writer {
 					fw.write(w.getHead()+"\t");
 				}
 				else if(i==fieldRel) {
-					fw.write((w.getRel()==null?"_":w.getRel())+"\t");
+					if(ApplicationControl.newPredArcTag)
+						fw.write((w.getTag()==null?"_":w.getTag())+"\t");
+					else
+						fw.write((w.getRel()==null?"_":w.getRel())+"\t");
 				}
 				else if(i==9) {
 					fw.write("_\n");

@@ -12,7 +12,7 @@ public class ArcStandardDecoder {
 	private static final boolean SwapMPC = true;
 	private static int swapCount = 0;
 	
-	public static void buildConfiguration(Sentence st,LinkedList<Configuration> cList) {
+	public static void buildConfiguration(Sentence st,LinkedList<Configuration> cList, LinkedList<TagFeature> tfl) {
 		preProcess(st);
 		State s = new State(st);
 		while(!(s.getBuffer().isEmpty() && s.getStack().size()==1)) {
@@ -20,6 +20,13 @@ public class ArcStandardDecoder {
 			if(canLeftArc(s)) {
 				//add configuration to list
 				cList.add(new Configuration(s.clone(),st,"LeftArc",s.getStack().peekLast().getRel()));
+				
+				//add Tag Feature
+				if(ApplicationControl.newPredArcTag) {
+					tfl.add(new TagFeature(s.getStack().peekLast().getTag(),
+						s.getBuffer().peekFirst().getForm(), s.getBuffer().peekFirst().getPos(), 
+						s.getStack().peekLast().getForm(), s.getStack().peekLast().getPos()));
+				}
 				
 				//add information to state: heads, leftmost, rightmost
 				s.getHeads()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
@@ -36,6 +43,13 @@ public class ArcStandardDecoder {
 			else if(canRightArc(s)) {
 				//add configuration to list
 				cList.add(new Configuration(s.clone(),st,"RightArc",s.getBuffer().peekFirst().getRel()));
+				
+				//add Tag Feature
+				if(ApplicationControl.newPredArcTag) {
+				tfl.add(new TagFeature(s.getBuffer().peekFirst().getTag(),
+						s.getStack().peekLast().getForm(), s.getStack().peekLast().getPos(),
+						s.getBuffer().peekFirst().getForm(), s.getBuffer().peekFirst().getPos()));
+				}
 				
 				//add information to state: heads, leftmost, rightmost
 				s.getHeads()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
@@ -501,17 +515,17 @@ public class ArcStandardDecoder {
 		}
 		for(Word w : st.getWdList()) {
 			if(w.getMPChead()!=-1) {
-				w.setMPCID(findMPCAncestor(st, w.getID()));
+				w.setMPCID(findMPCAncestor(st, w.getID(), 0));
 			}
 		}
 	}
 	
-	private static int findMPCAncestor(Sentence st, int current) {
+	private static int findMPCAncestor(Sentence st, int current, int length) {
 		Word w = st.getWdList().get(current);
 		if(w.getMPChead()==-1)
 			return w.getMPCID();
 		else
-			return findMPCAncestor(st, w.getMPChead());
+			return findMPCAncestor(st, w.getMPChead(), length+1);
 	}
 	
 	public static void resetMemo() {
@@ -535,6 +549,7 @@ public class ArcStandardDecoder {
 		//--calc configuration from a sample sentence (from slides)
 		System.out.println("Sentence1: ");
 		LinkedList<Configuration> cl = new LinkedList<Configuration>();
+		LinkedList<TagFeature> tfl = new LinkedList<TagFeature>();
 		LinkedList<Word> wl = new LinkedList<Word>();
 		wl.add(new Word(1, "Not", "not", "---", 2));
 		wl.add(new Word(2, "all", "all", "---", 6));
@@ -546,7 +561,7 @@ public class ArcStandardDecoder {
 		wl.add(new Word(8, "changes", "change", "---", 6));
 		wl.add(new Word(9, ".", ".", "---", 6));
 		Sentence s = new Sentence(wl);
-		buildConfiguration(s,cl);
+		buildConfiguration(s,cl,tfl);
 		
 		for(Word w : s.getWdList()) {
 			System.out.println("Word#"+w.getID()+" form:"+w.getForm()+" head:"+w.getHead()+" projective:"+w.getProjectiveID());
@@ -565,6 +580,7 @@ public class ArcStandardDecoder {
 		System.out.println("\n\nSentence2: ");
 		
 		LinkedList<Configuration> cl2 = new LinkedList<Configuration>();
+		LinkedList<TagFeature> tfl2 = new LinkedList<TagFeature>();
 		LinkedList<Word> wl2 = new LinkedList<Word>();
 		wl2.add(new Word(1, "John", "john", "---", 2));
 		wl2.add(new Word(2, "saw", "see", "---", 0));
@@ -576,7 +592,7 @@ public class ArcStandardDecoder {
 		wl2.add(new Word(8, "a", "a", "---", 9));
 		wl2.add(new Word(9, "Poddle", "poddle", "---", 7));
 		s = new Sentence(wl2);
-		buildConfiguration(s,cl2);
+		buildConfiguration(s,cl2,tfl2);
 		
 		for(Word w : s.getWdList()) {
 			System.out.println("Word#"+w.getID()+" form:"+w.getForm()+" head:"+w.getHead()+" projective:"+w.getProjectiveID()+" MPC:"+w.getMPCID()+" MPChead:"+w.getMPChead());
@@ -598,6 +614,7 @@ public class ArcStandardDecoder {
 		System.out.println("\n\nSentence3: ");
 		
 		LinkedList<Configuration> cl3 = new LinkedList<Configuration>();
+		LinkedList<TagFeature> tfl3 = new LinkedList<TagFeature>();
 		LinkedList<Word> wl3 = new LinkedList<Word>();
 		wl3.add(new Word(1, "Who", "who", "---", 7));
 		wl3.add(new Word(2, "did", "do", "---", 0));
@@ -608,7 +625,7 @@ public class ArcStandardDecoder {
 		wl3.add(new Word(7, "to", "to", "---", 4));
 		wl3.add(new Word(8, "?", "?", "---", 2));
 		s = new Sentence(wl3);
-		buildConfiguration(s,cl3);
+		buildConfiguration(s,cl3,tfl3);
 				
 		for(Word w : s.getWdList()) {
 			System.out.println("Word#"+w.getID()+" form:"+w.getForm()+" head:"+w.getHead()+" projective:"+w.getProjectiveID()+" MPC:"+w.getMPCID()+" MPChead:"+w.getMPChead());

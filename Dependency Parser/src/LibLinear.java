@@ -24,6 +24,9 @@ public class LibLinear implements Serializable, LibClassifier{
 	private HashMap<String, Integer> feamap;
 	private HashMap<Integer, ArcTag> tagmap;
 	private HashMap<ArcTag, Integer> itagmap;
+
+	private HashMap<Integer, String> ntagmap;
+	private HashMap<String, Integer> intagmap;
 	
 	private Integer nLabel;
 	
@@ -93,6 +96,58 @@ public class LibLinear implements Serializable, LibClassifier{
 		model.save(new File(mPath));
 	}
 	
+	@SuppressWarnings("static-access")
+	public LibLinear(LinkedList<TagFeature> tfl, String mPath, String fPath) throws IOException, InvalidInputDataException {
+		//train model for predicting tags
+		feamap = new HashMap<String, Integer>();  //map feature name to uid
+		ntagmap = new HashMap<Integer, String>();  //map arcid to arctag
+		intagmap = new HashMap<String, Integer>();  //map arctag to arcid
+		nFeatureFull=1;  //amount of features
+		modelPath=mPath;
+		featurePath=fPath;
+		nTagFull=1;
+		
+		FileWriter fw = new FileWriter(fPath);
+		for(TagFeature f : tfl) {
+			LinkedList<Integer> fealist = new LinkedList<Integer>();
+			String[] str=new String[Feature.nFeature];
+			
+			if(!intagmap.containsKey(f.get_tag())) {
+				ntagmap.put(nTagFull, f.get_tag());
+				intagmap.put(f.get_tag(), nTagFull);
+				nTagFull++;
+			}
+			
+			for(int i=0;i<TagFeature.nFeature;i++) {
+				str[i]=f.getNameOf(i)+"_"+f.getValueOf(i);  //generate name of feature
+			}
+			for(int k=0;k<TagFeature.nFeature;k++) {
+				if(!feamap.containsKey(str[k]) && f.getValueOf(k)!=null) {
+					feamap.put(str[k], nFeatureFull);
+					nFeatureFull++;
+				}
+				if(feamap.containsKey(str[k]) && f.getValueOf(k)!=null) {
+					//fw.write(" "+feamap.get(str[k])+":1.0");
+					fealist.add(feamap.get(str[k]));
+				}
+			}
+			
+			if(!fealist.isEmpty()) {
+				//fw.write(new Integer(f.getnLabel()).toString());
+				fw.write(intagmap.get(f.get_tag()).toString());
+				Collections.sort(fealist);
+				for(Integer inte : fealist) {
+					fw.write(" "+inte+":1.0");
+				}
+				fw.write("\n");
+			}
+		}
+		fw.close();
+		
+		model=Linear.train(new Problem().readFromFile(new File(fPath), 0), new Parameter(SolverType.L2R_L2LOSS_SVC, 1.0, 0.01));
+		model.save(new File(mPath));
+	}
+	
 	@Override
 	public void readModel(String mPath) throws IOException {
 		model = Model.load(new File(mPath));
@@ -129,6 +184,36 @@ public class LibLinear implements Serializable, LibClassifier{
 	}
 	
 	@Override
+	public String findBest(TagFeature f) {  //find best tag given feature
+		String[] str=new String[TagFeature.nFeature];
+		for(int i=0;i<TagFeature.nFeature;i++) {
+			str[i]=f.getNameOf(i)+"_"+f.getValueOf(i);
+		}
+		
+		int feacount=0;
+		for(int j=0;j<TagFeature.nFeature;j++) {
+			if(feamap.containsKey(str[j])) {
+				feacount++;
+			}
+		}
+		FeatureNode[] x = new FeatureNode[feacount];
+		LinkedList<Integer> fealist = new LinkedList<Integer>();
+		for(int j=0;j<TagFeature.nFeature;j++) {
+			if(feamap.containsKey(str[j])) {
+				fealist.add(feamap.get(str[j]));
+			}
+		}
+		feacount=0;
+		for(Integer inte : fealist) {
+			x[feacount]=new FeatureNode(inte,1.0D);
+			feacount++;
+		}
+		
+		Double v=Linear.predict(model, x);
+		return ntagmap.get(v.intValue());
+	}
+	
+	@Override
 	public int getnFeature() {
 		return nFeatureFull-1;
 	}
@@ -136,5 +221,10 @@ public class LibLinear implements Serializable, LibClassifier{
 	@Override
 	public int getnTag() {
 		return nTagFull-nLabel-1;
+	}
+	
+	@Override
+	public int getnNewTag() {
+		return nTagFull-1;
 	}
 }

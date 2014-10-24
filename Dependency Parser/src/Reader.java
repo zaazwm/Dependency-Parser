@@ -14,6 +14,8 @@ public class Reader {
 	private InputStreamReader isr;
 	private BufferedReader br;
 	
+	private Sentence tst;
+	
 	private static int fieldID=0;
 	private static int fieldForm=1;
 	private static int fieldLemma=2;
@@ -42,12 +44,23 @@ public class Reader {
 				wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],Integer.parseInt(fields[fieldHead]),fields[fieldRel]));
 			}
 			else {
-				//only read id, form, lemma, pos, head information
-				wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],Integer.parseInt(fields[fieldHead])));
+				//only read id, form, lemma, pos, head information (or a special tag if will predict)
+				if(ApplicationControl.newPredArcTag)
+					wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],Integer.parseInt(fields[fieldHead]),fields[fieldRel],true));
+				else
+					wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],Integer.parseInt(fields[fieldHead])));
+				
 			}
 		}
 		
+		tst = new Sentence(wl, true);
+		
 		return new Sentence(wl);
+	}
+	
+	public Sentence readLast() {
+		//read the cached sentence
+		return tst;
 	}
 	
 	public Sentence readNextTest() throws IOException {
@@ -62,7 +75,10 @@ public class Reader {
 				wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],-1,fields[fieldRel]));
 			}
 			else {
-				wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],-1));
+				if(ApplicationControl.newPredArcTag)
+					wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],Integer.parseInt(fields[fieldHead]),fields[fieldRel],true));
+				else
+					wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],-1));
 			}
 		}
 		
@@ -86,10 +102,11 @@ public class Reader {
 		Writer wt = new Writer("/Users/zaa/Desktop/dp.test.conll06");
 		int count=0;
 		LinkedList<Configuration> cl = new LinkedList<Configuration>();
+		LinkedList<TagFeature> tfl = new LinkedList<TagFeature>();
 		while(rd.hasNext()) {
 			count++;
 			Sentence st = rd.readNext();
-			ArcEagerDecoder.buildConfiguration(st, cl);
+			ArcEagerDecoder.buildConfiguration(st, cl, tfl);
 			int co=1;
 			for(Configuration cf : cl) {
 				System.out.println("state#"+co+" s: "+(cf.getState().getStack().isEmpty()?"":cf.getState().getStack().peekLast().getForm())

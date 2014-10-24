@@ -35,6 +35,7 @@ public class ApplicationControl {
 	public static boolean modelLibLinear=true;  //(modelLibSVM=true) true to use libLinear, false to use libSVM
 	public static boolean predictArcTag=false;  //(modelLibSVM=true) true to predict ArcTag, false to predict null
 	public static boolean argsReader=false; //true to read args[], false to use default settings
+	public static boolean newPredArcTag=false; //true to predict arc tags separately
 
 	public static void main(String[] args) throws IOException, ClassNotFoundException, InvalidInputDataException, ParseException {
 		//main entry to application
@@ -53,6 +54,7 @@ public class ApplicationControl {
 		para.addOption("libsvm", false, "use LibSVM for training");
 		para.addOption("liblinear", false, "use LibLinear for training, <default>");
 		para.addOption("arcpred", false, "predict arc tags, need -libsvm or -liblinear");
+		para.addOption("newarcpred", false, "predict arc tags separately, need -libsvm or -liblinear");
 		para.addOption("dev", false, "use development data to compare result");
 		para.addOption("h", "help", false, "print help message");
 		
@@ -110,6 +112,11 @@ public class ApplicationControl {
 			predictArcTag=true;
 		}
 		
+		if(cl.hasOption("newarcpred")) {
+			modelLibSVM=true;
+			newPredArcTag=true;
+		}
+		
 		if(cl.hasOption("dev"))
 			devMark=true;
 		
@@ -123,6 +130,7 @@ public class ApplicationControl {
 		System.out.println("modelLibSVM = "+modelLibSVM);
 		System.out.println("modelLibLinear = "+modelLibLinear);
 		System.out.println("predictArcTag = "+predictArcTag);
+		System.out.println("newPredArcTag = "+newPredArcTag);
 		System.out.println("argsReader = "+argsReader);
 		
 		//run the program
@@ -189,6 +197,7 @@ public class ApplicationControl {
 		ArcStandardDecoder.resetMemo();
 		ArcStandardDecoder.resetSwco();
 		LinkedList<Feature> fl = new LinkedList<Feature>();
+		LinkedList<TagFeature> tfl = new LinkedList<TagFeature>();
 		//read file
 		String dataDir = null;
 		if(argsReader)
@@ -206,16 +215,20 @@ public class ApplicationControl {
 		//read sentences and calc & save configurations
 		while(rd.hasNext()) {
 			LinkedList<Configuration> cl = new LinkedList<Configuration>();
+			
 			if(ArcStandard) {
-				ArcStandardDecoder.buildConfiguration(rd.readNext(), cl);
+				ArcStandardDecoder.buildConfiguration(rd.readNext(), cl, tfl);
 			}
 			else {
-				ArcEagerDecoder.buildConfiguration(rd.readNext(), cl);
+				ArcEagerDecoder.buildConfiguration(rd.readNext(), cl, tfl);
 			}
 			
 			for(Configuration cf : cl) {
 				fl.add(cf.buildFeature());
 			}
+			
+			//to build Tag Feature separately, not online (valid if more complex feature)
+			//ArcTager.buildTagFeature(rd.readLast(), tfl);
 		}
 		
 		rd.close();
@@ -235,6 +248,7 @@ public class ApplicationControl {
 		}
 		else if(!modelLibLinear) {
 			//use saved configurations to do libsvm
+			
 			LibClassifier pc;
 			if(argsReader)
 				pc = new LibSVM(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
@@ -242,7 +256,7 @@ public class ApplicationControl {
 			else
 				pc = new LibSVM(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
 					"/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.feature");
-			System.out.println("Feature number: "+pc.getnFeature()+" ArcTag #: "+pc.getnTag()+(ArcStandard?(" Non-Projective #: "+ArcStandardDecoder.readMemo()+" swap #: "+ArcStandardDecoder.readSwco()):""));
+			System.out.println("Feature number: "+pc.getnFeature()+(predictArcTag?(" ArcTag #: "+pc.getnTag()):"")+(ArcStandard?(" Non-Projective #: "+ArcStandardDecoder.readMemo()+" swap #: "+ArcStandardDecoder.readSwco()):"")+"\n\n");
 			//write model to file
 			File modelPath;
 			if(argsReader)
@@ -252,6 +266,25 @@ public class ApplicationControl {
 			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath)));
 			oos.writeObject(pc);
 			oos.close();
+			
+			//to train tagger model separately 
+			if(newPredArcTag) {
+				LibClassifier pc2;
+				if(argsReader)
+					pc2 = new LibSVM(tfl, dataDir+"/tg.model", dataDir+"/tg.feature");
+				else
+					pc2 = new LibSVM(tfl, "/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.feature");
+				System.out.println("ArcTag Feature: "+pc2.getnFeature()+" ArcTag #: "+pc2.getnNewTag());
+				//write model to file
+				File modelPath2;
+				if(argsReader)
+					modelPath2 = new File(dataDir+"/tg.mapping");
+				else
+					modelPath2 = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.mapping");
+				ObjectOutputStream oos2 = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath2)));
+				oos2.writeObject(pc2);
+				oos2.close();
+			}
 		}
 		else {
 			//use saved configurations to do liblinear
@@ -262,7 +295,7 @@ public class ApplicationControl {
 			else
 				pc = new LibLinear(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
 						"/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.feature");
-			System.out.println("Feature number: "+pc.getnFeature()+" ArcTag #: "+pc.getnTag()+(ArcStandard?(" Non-Projective #: "+ArcStandardDecoder.readMemo()+" swap #: "+ArcStandardDecoder.readSwco()):""));
+			System.out.println("Feature number: "+pc.getnFeature()+(predictArcTag?(" ArcTag #: "+pc.getnTag()):"")+(ArcStandard?(" Non-Projective #: "+ArcStandardDecoder.readMemo()+" swap #: "+ArcStandardDecoder.readSwco()):"")+"\n\n");
 			//write model to file
 			File modelPath;
 			if(argsReader)
@@ -272,6 +305,25 @@ public class ApplicationControl {
 			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath)));
 			oos.writeObject(pc);
 			oos.close();
+			
+			//to train tagger model separately 
+			if(newPredArcTag) {
+				LibClassifier pc2;
+				if(argsReader)
+					pc2 = new LibLinear(tfl, dataDir+"/tg.model", dataDir+"/tg.feature");
+				else
+					pc2 = new LibLinear(tfl, "/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.feature");
+				System.out.println("ArcTag Feature: "+pc2.getnFeature()+" ArcTag #: "+pc2.getnNewTag());
+				//write model to file
+				File modelPath2;
+				if(argsReader)
+					modelPath2 = new File(dataDir+"/tg.mapping");
+				else
+					modelPath2 = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.mapping");
+				ObjectOutputStream oos2 = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath2)));
+				oos2.writeObject(pc2);
+				oos2.close();
+			}
 		}
 	}
 	
@@ -282,6 +334,7 @@ public class ApplicationControl {
 			dataDir = new File(dataPath).getParent();
 		Perceptron pc = null;
 		LibClassifier lc = null;
+		LibClassifier lc2 = null;
 		if(!modelLibSVM) {
 			//read model from file
 			File modelPath;
@@ -307,6 +360,22 @@ public class ApplicationControl {
 				lc.readModel(dataDir+"/dp.model");
 			else
 				lc.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
+			
+			//to read tagger model separately 
+			if(newPredArcTag) {
+				File modelPath2;
+				if(argsReader)
+					modelPath2 = new File(dataDir+"/tg.mapping");
+				else
+					modelPath2 = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.mapping");
+				ObjectInputStream ois2 = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath2)));
+				lc2 = (LibSVM) ois2.readObject();
+				ois2.close();
+				if(argsReader)
+					lc2.readModel(dataDir+"/tg.model");
+				else
+					lc2.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.model");
+			}
 		}
 		else {
 			File modelPath;
@@ -322,6 +391,24 @@ public class ApplicationControl {
 				lc.readModel(dataDir+"/dp.model");
 			else
 				lc.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
+			
+			//to read tagger model separately 
+			if(newPredArcTag) {
+				File modelPath2;
+				if(argsReader)
+					modelPath2 = new File(dataDir+"/tg.mapping");
+				else
+					modelPath2 = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.mapping");
+				ObjectInputStream ois2 = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath2)));
+				lc2 = (LibLinear) ois2.readObject();
+				ois2.close();
+				
+				if(argsReader)
+					lc2.readModel(dataDir+"/tg.model");
+				else
+					lc2.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.model");
+				
+			}
 		}
 		
 		Reader rd;
@@ -344,16 +431,27 @@ public class ApplicationControl {
 			if(ArcStandard) {
 				if(!modelLibSVM) 
 					ArcStandardDecoder.doParsing(pc, st);
-				else
+				else {
 					ArcStandardDecoder.doParsing(lc, st);
+					//predict tag
+					if(newPredArcTag)
+						ArcTager.tag(lc2, st);
+				}
 					
 			}
 			else {
 				if(!modelLibSVM) 
 					ArcEagerDecoder.doParsing(pc, st);
-				else
+				else {
 					ArcEagerDecoder.doParsing(lc, st);
+					//predict tag
+					if(newPredArcTag)
+						ArcTager.tag(lc2, st);
+				}
 			}
+			
+			
+			
 			//write parsing result to file
 			wt.write(st);
 			
@@ -368,6 +466,7 @@ public class ApplicationControl {
 	
 	public static void TrainModel(String dataPath, String mPath) throws IOException, InvalidInputDataException {
 		LinkedList<Feature> fl = new LinkedList<Feature>();
+		LinkedList<TagFeature> tfl = new LinkedList<TagFeature>();
 		ArcStandardDecoder.resetMemo();
 		ArcStandardDecoder.resetSwco();
 		//read file
@@ -389,23 +488,26 @@ public class ApplicationControl {
 		while(rd.hasNext()) {
 			LinkedList<Configuration> cl = new LinkedList<Configuration>();
 			if(ArcStandard) {
-				ArcStandardDecoder.buildConfiguration(rd.readNext(), cl);
+				ArcStandardDecoder.buildConfiguration(rd.readNext(), cl, tfl);
 			}
 			else {
-				ArcEagerDecoder.buildConfiguration(rd.readNext(), cl);
+				ArcEagerDecoder.buildConfiguration(rd.readNext(), cl, tfl);
 			}
 			
 			for(Configuration cf : cl) {
 				fl.add(cf.buildFeature());
 			}
+			
+			//to build Tag Feature separately, not online (valid if more complex feature)
+			//ArcTager.buildTagFeature(rd.readLast(), tfl);
 		}
 		
 		rd.close();
 		
-		//BUGPOINT
+		//TEST-BUGPOINT
 //		System.out.println("SWAP count: "+ArcStandardDecoder.readSwco());
 //		System.exit(0);
-		//END BUGPOINT
+		//END TEST-BUGPOINT
 		
 		if(!modelLibSVM) {
 			//use saved configurations to do perceptron
@@ -430,7 +532,7 @@ public class ApplicationControl {
 			else
 				pc = new LibSVM(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
 					"/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.feature");
-			System.out.println("Feature number: "+pc.getnFeature()+" ArcTag #: "+pc.getnTag()+(ArcStandard?(" Non-Projective #: "+ArcStandardDecoder.readMemo()+" swap #: "+ArcStandardDecoder.readSwco()):""));
+			System.out.println("Feature number: "+pc.getnFeature()+(predictArcTag?(" ArcTag #: "+pc.getnTag()):"")+(ArcStandard?(" Non-Projective #: "+ArcStandardDecoder.readMemo()+" swap #: "+ArcStandardDecoder.readSwco()):"")+"\n\n");
 			//write model to file
 			File modelPath;
 			if(argsReader)
@@ -440,6 +542,25 @@ public class ApplicationControl {
 			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath)));
 			oos.writeObject(pc);
 			oos.close();
+			
+			//to train tagger model separately 
+			if(newPredArcTag) {
+				LibClassifier pc2;
+				if(argsReader)
+					pc2 = new LibSVM(tfl, mPath+"/tg.model", mPath+"/tg.feature");
+				else
+					pc2 = new LibSVM(tfl, "/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.feature");
+				System.out.println("ArcTag Feature: "+pc2.getnFeature()+" ArcTag #: "+pc2.getnNewTag());
+				//write model to file
+				File modelPath2;
+				if(argsReader)
+					modelPath2 = new File(mPath+"/tg.mapping");
+				else
+					modelPath2 = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.mapping");
+				ObjectOutputStream oos2 = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath2)));
+				oos2.writeObject(pc2);
+				oos2.close();
+			}
 		}
 		else {
 			//use saved configurations to do liblinear
@@ -450,7 +571,7 @@ public class ApplicationControl {
 			else
 				pc = new LibLinear(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
 						"/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.feature");
-			System.out.println("Feature number: "+pc.getnFeature()+" ArcTag #: "+pc.getnTag()+(ArcStandard?(" Non-Projective #: "+ArcStandardDecoder.readMemo()+" swap #: "+ArcStandardDecoder.readSwco()):""));
+			System.out.println("Feature number: "+pc.getnFeature()+(predictArcTag?(" ArcTag #: "+pc.getnTag()):"")+(ArcStandard?(" Non-Projective #: "+ArcStandardDecoder.readMemo()+" swap #: "+ArcStandardDecoder.readSwco()):"")+"\n\n");
 			//write model to file
 			File modelPath;
 			if(argsReader)
@@ -460,6 +581,25 @@ public class ApplicationControl {
 			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath)));
 			oos.writeObject(pc);
 			oos.close();
+			
+			//to train tagger model separately 
+			if(newPredArcTag) {
+				LibClassifier pc2;
+				if(argsReader)
+					pc2 = new LibLinear(tfl, mPath+"/tg.model", mPath+"/tg.feature");
+				else
+					pc2 = new LibLinear(tfl, "/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.feature");
+				System.out.println("ArcTag Feature: "+pc2.getnFeature()+" ArcTag #: "+pc2.getnNewTag());
+				//write model to file
+				File modelPath2;
+				if(argsReader)
+					modelPath2 = new File(mPath+"/tg.mapping");
+				else
+					modelPath2 = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.mapping");
+				ObjectOutputStream oos2 = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath2)));
+				oos2.writeObject(pc2);
+				oos2.close();
+			}
 		}
 	}
 	
@@ -471,6 +611,7 @@ public class ApplicationControl {
 			dataDir = new File(dataPath).getParent();
 		Perceptron pc = null;
 		LibClassifier lc = null;
+		LibClassifier lc2 = null;
 		if(!modelLibSVM) {
 			//read model from file
 			File modelPath;
@@ -496,6 +637,22 @@ public class ApplicationControl {
 				lc.readModel(mPath+"dp.model");
 			else
 				lc.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
+			
+			//to read tagger model separately 
+			if(newPredArcTag) {
+				File modelPath2;
+				if(argsReader)
+					modelPath2 = new File(mPath+"/tg.mapping");
+				else
+					modelPath2 = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.mapping");
+				ObjectInputStream ois2 = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath2)));
+				lc2 = (LibSVM) ois2.readObject();
+				ois2.close();
+				if(argsReader)
+					lc2.readModel(mPath+"/tg.model");
+				else
+					lc2.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.model");
+			}
 		}
 		else {
 			File modelPath;
@@ -511,6 +668,24 @@ public class ApplicationControl {
 				lc.readModel(mPath+"dp.model");
 			else
 				lc.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
+			
+			//to read tagger model separately 
+			if(newPredArcTag) {
+				File modelPath2;
+				if(argsReader)
+					modelPath2 = new File(mPath+"/tg.mapping");
+				else
+					modelPath2 = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.mapping");
+				ObjectInputStream ois2 = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath2)));
+				lc2 = (LibLinear) ois2.readObject();
+				ois2.close();
+				
+				if(argsReader)
+					lc2.readModel(mPath+"/tg.model");
+				else
+					lc2.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.model");
+				
+			}
 		}
 		
 		Reader rd;
@@ -533,16 +708,25 @@ public class ApplicationControl {
 			if(ArcStandard) {
 				if(!modelLibSVM) 
 					ArcStandardDecoder.doParsing(pc, st);
-				else
+				else {
 					ArcStandardDecoder.doParsing(lc, st);
+					//predict tag
+					if(newPredArcTag)
+						ArcTager.tag(lc2, st);
+				}
 					
 			}
 			else {
 				if(!modelLibSVM) 
 					ArcEagerDecoder.doParsing(pc, st);
-				else
+				else {
 					ArcEagerDecoder.doParsing(lc, st);
+					//predict tag
+					if(newPredArcTag)
+						ArcTager.tag(lc2, st);
+				}
 			}
+			
 			//write parsing result to file
 			wt.write(st);
 			
@@ -600,5 +784,7 @@ public class ApplicationControl {
 		NumberFormat formatter = new DecimalFormat("00.00"); 
 		System.out.print("\n\n------------------------------\nResult: "+countright+" : "+countfull+" = "+formatter.format(red)+"%");
 		System.out.print(predictArcTag?("   Arc-Tag: "+counttagright+" : "+countfull+" = "+formatter.format(tagred)+"%\n"):"\n");
+		System.out.print(newPredArcTag?("   Arc-Tag: "+counttagright+" : "+countfull+" = "+formatter.format(tagred)+"%\n"):"\n");
+		
 	}
 }

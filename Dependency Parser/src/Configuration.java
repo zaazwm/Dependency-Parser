@@ -145,4 +145,5 @@ public class Configuration {
 	public void setTag(String tag) {
 		this.tag = tag;
 	}
+	
 }

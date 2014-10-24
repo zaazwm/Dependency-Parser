@@ -13,6 +13,7 @@ public class Word {
 	private LinkedList<Integer> _children;
 	private int _MPCID;
 	private int _MPChead;
+	private String _tag;
 	//to save information of each word/token
 	public Word(int id, String form, String lemma, String pos, String morph, int head, String rel) {
 		_ID=id;
@@ -22,6 +23,7 @@ public class Word {
 		_morph=morph;
 		_head=head;
 		_rel=rel;
+		_tag=null;
 		_children=new LinkedList<Integer>();
 		_MPCID=-1;
 		_MPChead=-1;
@@ -35,6 +37,7 @@ public class Word {
 		_morph=null;
 		_head=head;
 		_rel=rel;
+		_tag=null;
 		_children=new LinkedList<Integer>();
 		_MPCID=-1;
 		_MPChead=-1;
@@ -48,6 +51,21 @@ public class Word {
 		_morph=null;
 		_head=head;
 		_rel=null;
+		_tag=null;
+		_children=new LinkedList<Integer>();
+		_MPCID=-1;
+		_MPChead=-1;
+	}
+	
+	public Word(int id, String form, String lemma, String pos, int head, String tag, boolean marker) {
+		_ID=id;
+		_form=form;
+		_lemma=lemma;
+		_pos=pos;
+		_morph=null;
+		_head=head;
+		_rel=null;
+		_tag=tag;
 		_children=new LinkedList<Integer>();
 		_MPCID=-1;
 		_MPChead=-1;
@@ -139,6 +157,14 @@ public class Word {
 
 	public void setMPChead(int MPChead) {
 		this._MPChead = MPChead;
+	}
+
+	public String getTag() {
+		return _tag;
+	}
+
+	public void setTag(String tag) {
+		this._tag = tag;
 	}
 	
 }

@@ -5,12 +5,19 @@ public class ArcEagerDecoder {
 	public static final int nLabel = 4;
 	public static final String transition3rdName = "Reduce"; 
 	
-	public static void buildConfiguration(Sentence st,LinkedList<Configuration> cList) {
+	public static void buildConfiguration(Sentence st,LinkedList<Configuration> cList, LinkedList<TagFeature> tfl) {
 		State s = new State(st);
 		while(!(s.getBuffer().isEmpty())) {
 			if(canLeftArc(s)) {
 				//add configuration to list
 				cList.add(new Configuration(s.clone(),st,"LeftArc",s.getStack().peekLast().getRel()));
+
+				//add Tag Feature
+				if(ApplicationControl.newPredArcTag) {
+					tfl.add(new TagFeature(s.getStack().peekLast().getTag(),
+						s.getBuffer().peekFirst().getForm(), s.getBuffer().peekFirst().getPos(), 
+						s.getStack().peekLast().getForm(), s.getStack().peekLast().getPos()));
+				}
 				
 				//add information to state: heads, leftmost, rightmost
 				s.getHeads()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
@@ -27,6 +34,13 @@ public class ArcEagerDecoder {
 			else if(canRightArc(s)) {
 				//add configuration to list
 				cList.add(new Configuration(s.clone(),st,"RightArc",s.getBuffer().peekFirst().getRel()));
+				
+				//add Tag Feature
+				if(ApplicationControl.newPredArcTag) {
+					tfl.add(new TagFeature(s.getBuffer().peekFirst().getTag(),
+						s.getStack().peekLast().getForm(), s.getStack().peekLast().getPos(),
+						s.getBuffer().peekFirst().getForm(), s.getBuffer().peekFirst().getPos()));
+				}
 				
 				//add information to state: heads, leftmost, rightmost
 				s.getHeads()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
@@ -344,6 +358,7 @@ public class ArcEagerDecoder {
 		//test entry to arceagerdecoder
 		//--calc configuration from a sample sentence (from slides)
 		LinkedList<Configuration> cl = new LinkedList<Configuration>();
+		LinkedList<TagFeature> tfl = new LinkedList<TagFeature>();
 		LinkedList<Word> wl = new LinkedList<Word>();
 		wl.add(new Word(1, "Not", "not", "---", 2));
 		wl.add(new Word(2, "all", "all", "---", 6));
@@ -355,7 +370,7 @@ public class ArcEagerDecoder {
 		wl.add(new Word(8, "changes", "change", "---", 6));
 		wl.add(new Word(9, ".", ".", "---", 6));
 		Sentence s = new Sentence(wl);
-		buildConfiguration(s,cl);
+		buildConfiguration(s,cl,tfl);
 		int co=1;
 		for(Configuration cf : cl) {
 			System.out.println("state#"+co+" s: "+(cf.getState().getStack().isEmpty()?"":cf.getState().getStack().peekLast().getForm())

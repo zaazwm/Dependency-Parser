@@ -1,6 +1,7 @@
 
 public class Feature {
 	//B for buffer, S for stack, <number> for position, f for Form, p for Pos, l for LeftMostPos, r for RightMostPos
+	
 	private String B0Form;
 	private String B0Pos;
 	private String S0Form;
@@ -42,6 +43,7 @@ public class Feature {
 	private String S0pB0pB0l;
 	
 	
+	
 	//public static final int nFeature = 7;
 	public static final int nFeature = 6+7+2+6+7+5;
 	
@@ -64,26 +66,7 @@ public class Feature {
 		nLabel=Configuration.getConfToInt(Label);
 		LabelTag = tag;
 		
-		B0fp=B0Form+"-"+B0Pos;
-		S0fp=S0Form+"-"+S0Pos;
-		B0pS0p=B0Pos+"-"+S0Pos;
-		B0fS0f=B0Form+"-"+S0Form;
-		B01p=(B1Pos==null?null:(B0Pos+"-"+B1Pos));
-		S01p=(S1Pos==null?null:(S0Pos+"-"+S1Pos));
-		B0fpS0p=B0fp+"-"+S0Pos;
-		B0fpS0f=B0fp+"-"+S0Form;
-		B0fS0fp=B0Form+"-"+S0fp;
-		B0pS0fp=B0Pos+"-"+S0fp;
-		B0fS0p=B0Form+"-"+S0Pos;
-		B0pS0f=B0Pos+"-"+S0Form;
-		B0fpS0fp=B0fp+"-"+S0fp;
-		B1fp=(B1Pos==null?null:(B1Form+"-"+B1Pos));
-		B2fp=(B2Pos==null?null:(B2Form+"-"+B2Pos));
-		B0pB1pB2p=((B1Pos==null||B2Pos==null)?null:(B0Pos+"-"+B1Pos+"-"+B2Pos));
-		S0pB0pB1p=(B1Pos==null?null:(S0Pos+"-"+B0Pos+"-"+B1Pos));
-		S0pS0lB0p=(ldS0Pos==null?null:(S0Pos+"-"+ldS0Pos+"-"+B0Pos));
-		S0pS0rB0p=(rdS0Pos==null?null:(S0Pos+"-"+rdS0Pos+"-"+B0Pos));
-		S0pB0pB0l=(ldB0Pos==null?null:(S0Pos+"-"+B0Pos+"-"+ldB0Pos));
+		this.composeFeature();
 	}
 	
 	public Feature(String b0f, String b0p, String s0f, String s0p, String b1f, String b1p, String s1p, String b2f, String b2p, String s2p, String ldb0p, String rdb0p, String lds0p, String rds0p, int label, String tag) {
@@ -105,6 +88,10 @@ public class Feature {
 		Label=Configuration.getConfToString(nLabel);
 		LabelTag = tag;
 		
+		this.composeFeature();
+	}
+	
+	private void composeFeature() {
 		B0fp=B0Form+"-"+B0Pos;
 		S0fp=S0Form+"-"+S0Pos;
 		B0pS0p=B0Pos+"-"+S0Pos;

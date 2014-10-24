@@ -82,7 +82,7 @@ public class GUI2 implements GUI{
 		panel.add(predcb);
 		predcb.setVisible(true);
 		
-		decoder.setSelectedIndex(1);
+		decoder.setSelectedIndex(0);
 		training.setSelectedIndex(3);
 		method.setSelectedIndex(0);
 		predcb.setState(false);
@@ -112,6 +112,7 @@ public class GUI2 implements GUI{
 		System.out.println("modelLibSVM = "+ApplicationControl.modelLibSVM);
 		System.out.println("modelLibLinear = "+ApplicationControl.modelLibLinear);
 		System.out.println("predictArcTag = "+ApplicationControl.predictArcTag);
+		System.out.println("newPredArcTag = "+ApplicationControl.newPredArcTag);
 		System.out.println("argsReader = "+ApplicationControl.argsReader);
 		System.out.println("filePath = "+filepath);
 		System.out.println("modelPath = "+modelpath);
