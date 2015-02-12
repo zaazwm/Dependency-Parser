@@ -1,11 +1,13 @@
-import java.io.FileWriter;
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 
 
 public class Writer {
 	@SuppressWarnings("unused")
 	private String path;
-	private FileWriter fw;
+	private BufferedWriter fw;
 	
 	private static int fieldID=0;
 	private static int fieldForm=1;
@@ -17,7 +19,7 @@ public class Writer {
 	
 	public Writer(String path) throws IOException {
 		this.path=path;
-		fw=new FileWriter(path);
+		fw=new BufferedWriter( new OutputStreamWriter(new FileOutputStream(path),"UTF-8"));;
 	}
 	//write sentence to file, with CoNLL06 format
 	public void write(Sentence s) throws IOException {

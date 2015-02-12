@@ -3,6 +3,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 
 import org.apache.commons.lang3.StringUtils;
@@ -24,10 +25,10 @@ public class Reader {
 	private static int fieldHead=6;
 	private static int fieldRel=7;
 	
-	public Reader(String path) throws FileNotFoundException {
+	public Reader(String path) throws FileNotFoundException, UnsupportedEncodingException {
 		this.path=path;
 		fis=new FileInputStream(path);
-		isr=new InputStreamReader(fis);
+		isr=new InputStreamReader(fis, "UTF-8");
 		br=new BufferedReader(isr);
 	}
 	
