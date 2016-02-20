@@ -7,6 +7,7 @@ public class State {
 	private int[] heads;
 	private int[] leftMost;
 	private int[] rightMost;
+	private boolean justShift;
 	
 	private int size;
 	//to save state in parsing process, one state per transition
@@ -40,9 +41,18 @@ public class State {
 		rightMost=r;
 	}
 	
+	public State(LinkedList<Word> b, LinkedList<Word> s, int[] h, int[] l, int[] r, boolean j) {
+		buffer=b;
+		stack=s;
+		heads=h;
+		leftMost=l;
+		rightMost=r;
+		justShift=j;
+	}
+	
 	@SuppressWarnings("unchecked")
 	public State clone() {
-		return new State((LinkedList<Word>)buffer.clone(),(LinkedList<Word>)stack.clone(),heads.clone(),leftMost.clone(),rightMost.clone());
+		return new State((LinkedList<Word>)buffer.clone(),(LinkedList<Word>)stack.clone(),heads.clone(),leftMost.clone(),rightMost.clone(),justShift);
 	}
 	
 	public Feature buildFeature(Sentence stc) {  //build feature with this state
@@ -107,5 +117,13 @@ public class State {
 
 	public void setHeads(int[] heads) {
 		this.heads = heads;
+	}
+	
+	public void setJustShift(boolean justShift) {
+		this.justShift=justShift;
+	}
+	
+	public boolean getJustShift() {
+		return justShift;
 	}
 }

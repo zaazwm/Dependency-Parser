@@ -19,10 +19,11 @@ public class GUI2 implements GUI{
 	public String filepath = null;
 	public String modelpath = null;
 	public Checkbox predcb;
+	public JComboBox<String> training;
 	public Button filebtn;
 	public Button filebtn2;
 	
-	public static final String[] decoders = {"ArcStandard", "ArcEager"};
+	public static final String[] decoders = {"ArcStandard", "ArcEager", "ArcEagerOnline"};
 	public static final String[] trainings = {"Perceptron", "AvePerceptron", "LibSVM", "LibLinear"};
 	public static final String[] methods = {"Train", "Dev", "Test"};
 
@@ -55,12 +56,9 @@ public class GUI2 implements GUI{
 		filebtn2.addActionListener(new ModelButtonActionListener(GUI2.this, dlg2));
 		System.setProperty("apple.awt.fileDialogForDirectories", "false");
 		
-		@SuppressWarnings({ "rawtypes", "unchecked" })
-		JComboBox decoder = new JComboBox(decoders);
-		@SuppressWarnings({ "rawtypes", "unchecked" })
-		JComboBox training = new JComboBox(trainings);
-		@SuppressWarnings({ "rawtypes", "unchecked" })
-		JComboBox method = new JComboBox(methods);
+		JComboBox<String> decoder = new JComboBox<String>(decoders);
+		training = new JComboBox<String>(trainings);
+		JComboBox<String> method = new JComboBox<String>(methods);
 		decoder.addActionListener(new ComboBoxActionListener(GUI2.this));
 		training.addActionListener(new ComboBoxActionListener(GUI2.this));
 		method.addActionListener(new ComboBoxActionListener(GUI2.this));
@@ -114,6 +112,7 @@ public class GUI2 implements GUI{
 		System.out.println("predictArcTag = "+ApplicationControl.predictArcTag);
 		System.out.println("newPredArcTag = "+ApplicationControl.newPredArcTag);
 		System.out.println("argsReader = "+ApplicationControl.argsReader);
+		System.out.println("ArcEagerOnline = "+ApplicationControl.ArcEagerOnline);
 		System.out.println("filePath = "+filepath);
 		System.out.println("modelPath = "+modelpath);
 		
@@ -133,11 +132,13 @@ public class GUI2 implements GUI{
 		//if(selected.equals(decoders[0])) {
 		if(selected.equals("ArcStandard")) {
 			ApplicationControl.ArcStandard=true;
+			training.setEnabled(true);
 			return;
 		}
 		//if(selected.equals(decoders[1])) {
 		if(selected.equals("ArcEager")) {
 			ApplicationControl.ArcStandard=false;
+			training.setEnabled(true);
 			return;
 		}
 		//if(selected.equals(trainings[0])) {
@@ -146,6 +147,17 @@ public class GUI2 implements GUI{
 			ApplicationControl.modelLibSVM=false;
 			predcb.setEnabled(false);
 			predcb.setState(false);
+			return;
+		}
+		//if(selected.equals(decoders[2])) {
+		if(selected.equals("ArcEagerOnline")) {
+			ApplicationControl.ArcEagerOnline=true;
+			ApplicationControl.AvePerceptron=false;
+			ApplicationControl.modelLibSVM=false;
+			predcb.setEnabled(false);
+			predcb.setState(false);
+			training.setSelectedIndex(0);
+			training.setEnabled(false);
 			return;
 		}
 		//if(selected.equals(trainings[1])) {

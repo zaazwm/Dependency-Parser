@@ -26,4 +26,12 @@ public class Sentence {
 		Sentence ret = new Sentence(this.getWdList(),true);
 		return ret;
 	}
+	
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		for(Word w: wdList) {
+			sb.append(w.getForm()+" ");
+		}
+		return sb.toString();
+	}
 }

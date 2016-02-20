@@ -5,7 +5,7 @@ public class Configuration {
 	private int conf;
 	private String tag;
 	
-	public Configuration(State s,String cf, String tg) {
+	public Configuration(State s, String cf, String tg) {
 		st=s;
 		tag=tg;
 		if(cf.equalsIgnoreCase("Shift")) {
@@ -20,8 +20,11 @@ public class Configuration {
 		else if(cf.equalsIgnoreCase("Reduce") || cf.equalsIgnoreCase("Swap")) {
 			conf=3;
 		}
-		else {
+		else if(cf.equalsIgnoreCase("Unshift")){
 			conf=4;
+		}
+		else {
+			conf=5;
 		}
 	}
 	
@@ -41,8 +44,11 @@ public class Configuration {
 		else if(cf.equalsIgnoreCase("Reduce") || cf.equalsIgnoreCase("Swap")) {
 			conf=3;
 		}
-		else {
+		else if(cf.equalsIgnoreCase("Unshift")){
 			conf=4;
+		}
+		else {
+			conf=5;
 		}
 	}
 	
@@ -94,6 +100,8 @@ public class Configuration {
 		if(conf==3)
 			return "Reduce-Swap";
 		if(conf==4)
+			return "Unshift";
+		if(conf==5)
 			return "Unknown";
 		return "Error";
 	}
@@ -108,6 +116,8 @@ public class Configuration {
 		if(cf==3)
 			return "Reduce-Swap";
 		if(cf==4)
+			return "Unshift";
+		if(cf==5)
 			return "Unknown";
 		return "Error";
 	}
@@ -122,11 +132,14 @@ public class Configuration {
 		else if(cf.equalsIgnoreCase("RightArc")) {
 			return 2;
 		}
-		else if(cf.equalsIgnoreCase("Reduce-Swap")) {
+		else if(cf.equalsIgnoreCase("Reduce-Swap") || cf.equalsIgnoreCase("Reduce") || cf.equalsIgnoreCase("Swap")) {
 			return 3;
 		}
-		else {
+		else if(cf.equalsIgnoreCase("Unshift")) {
 			return 4;
+		}
+		else {
+			return 5;
 		}
 	}
 

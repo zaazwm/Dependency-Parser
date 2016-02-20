@@ -36,6 +36,7 @@ public class ApplicationControl {
 	public static boolean predictArcTag=false;  //(modelLibSVM=true) true to predict ArcTag, false to predict null
 	public static boolean argsReader=false; //true to read args[], false to use default settings
 	public static boolean newPredArcTag=false; //true to predict arc tags separately
+	public static boolean ArcEagerOnline=false; //true to only use ArcEager, Dynamic Oracle, Unshift supported
 
 	public static void main(String[] args) throws IOException, ClassNotFoundException, InvalidInputDataException, ParseException {
 		//main entry to application
@@ -57,6 +58,7 @@ public class ApplicationControl {
 		para.addOption("newarcpred", false, "predict arc tags separately, need -libsvm or -liblinear");
 		para.addOption("dev", false, "use development data to compare result");
 		para.addOption("h", "help", false, "print help message");
+		para.addOption("AEO", "AEOnline", false, "use ArcEagerOnline for decoder, supporting Unshift & Dynamic Oracle");
 		
 		CommandLine cl = parser.parse(para, args);
 		
@@ -120,6 +122,9 @@ public class ApplicationControl {
 		if(cl.hasOption("dev"))
 			devMark=true;
 		
+		if(cl.hasOption("AEO") || cl.hasOption("AEOnline"))
+			ArcEagerOnline=true;
+		
 		System.out.println("Arguments Readed: ");
 		
 		System.out.println("testMark = "+testMark);
@@ -132,6 +137,7 @@ public class ApplicationControl {
 		System.out.println("predictArcTag = "+predictArcTag);
 		System.out.println("newPredArcTag = "+newPredArcTag);
 		System.out.println("argsReader = "+argsReader);
+		System.out.println("ArcEagerOnline = "+ArcEagerOnline);
 		
 		//run the program
 		String dataPath = null;
@@ -211,12 +217,19 @@ public class ApplicationControl {
 			else
 				rd = new Reader("/Users/zaa/Desktop/VIS hiwi/dep_parsing/wsj_train.only-projective.conll06");
 		}
-			
+		
+		DynamicPerceptron dpc = new DynamicPerceptron(ArcEagerOnlineDecoder.nLabel);
+		LinkedList<Sentence> stList = new LinkedList<Sentence>();
 		//read sentences and calc & save configurations
 		while(rd.hasNext()) {
 			LinkedList<Configuration> cl = new LinkedList<Configuration>();
 			
-			if(ArcStandard) {
+			if(ArcEagerOnline) {
+				Sentence st = rd.readNext();
+				ArcEagerOnlineDecoder.buildConfiguration(st, dpc, 1);
+				stList.add(st);
+			}
+			else if(ArcStandard) {
 				ArcStandardDecoder.buildConfiguration(rd.readNext(), cl, tfl);
 			}
 			else {
@@ -232,7 +245,29 @@ public class ApplicationControl {
 		}
 		
 		rd.close();
-		if(!modelLibSVM) {
+		
+		//online training iteration for ArcEagerOnline
+		if(ArcEagerOnline) {
+			for(int i=2;i<=DynamicPerceptron.maxIter;i++) {
+				for(Sentence st : stList) {
+					ArcEagerOnlineDecoder.buildConfiguration(st, dpc, i);
+				}
+			}
+		}
+		
+		if(ArcEagerOnline) {
+			System.out.println("Feature number: "+dpc.getnFeature());
+			//write model to file
+			File modelPath;
+			if(argsReader)
+				modelPath = new File(dataDir+"/dp.model");
+			else
+				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
+			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath)));
+			oos.writeObject(dpc);
+			oos.close();
+		}
+		else if(!modelLibSVM) {
 			//use saved configurations to do perceptron
 			Perceptron pc = new Perceptron(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel);
 			System.out.println("Feature number: "+pc.getnFeature());
@@ -333,9 +368,21 @@ public class ApplicationControl {
 		if(argsReader)
 			dataDir = new File(dataPath).getParent();
 		Perceptron pc = null;
+		DynamicPerceptron dpc = null;
 		LibClassifier lc = null;
 		LibClassifier lc2 = null;
-		if(!modelLibSVM) {
+		if(ArcEagerOnline) {
+			//read model from file
+			File modelPath;
+			if(argsReader)
+				modelPath = new File(dataDir+"/dp.model");
+			else
+				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
+			ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath)));
+			dpc = (DynamicPerceptron) ois.readObject();
+			ois.close();
+		}
+		else if(!modelLibSVM) {
 			//read model from file
 			File modelPath;
 			if(argsReader)
@@ -428,7 +475,10 @@ public class ApplicationControl {
 		while(rd.hasNext()) {
 			count++;
 			Sentence st = rd.readNextTest();
-			if(ArcStandard) {
+			if(ArcEagerOnline) {
+				ArcEagerOnlineDecoder.doParsing(dpc, st);
+			}
+			else if(ArcStandard) {
 				if(!modelLibSVM) 
 					ArcStandardDecoder.doParsing(pc, st);
 				else {
@@ -483,11 +533,20 @@ public class ApplicationControl {
 			else
 				rd = new Reader("/Users/zaa/Desktop/VIS hiwi/dep_parsing/wsj_train.only-projective.conll06");
 		}
-			
+		
+		DynamicPerceptron dpc = new DynamicPerceptron(ArcEagerOnlineDecoder.nLabel);
+		LinkedList<Sentence> stList = new LinkedList<Sentence>();
+		
 		//read sentences and calc & save configurations
 		while(rd.hasNext()) {
 			LinkedList<Configuration> cl = new LinkedList<Configuration>();
-			if(ArcStandard) {
+			
+			if(ArcEagerOnline) {
+				Sentence st = rd.readNext();
+				ArcEagerOnlineDecoder.buildConfiguration(st, dpc, 1);
+				stList.add(st);
+			}
+			else if(ArcStandard) {
 				ArcStandardDecoder.buildConfiguration(rd.readNext(), cl, tfl);
 			}
 			else {
@@ -504,12 +563,33 @@ public class ApplicationControl {
 		
 		rd.close();
 		
+		//online training iteration for ArcEagerOnline
+		if(ArcEagerOnline) {
+			for(int i=2;i<=DynamicPerceptron.maxIter;i++) {
+				for(Sentence st : stList) {
+					ArcEagerOnlineDecoder.buildConfiguration(st, dpc, i);
+				}
+			}
+		}
+		
 		//TEST-BUGPOINT
 //		System.out.println("SWAP count: "+ArcStandardDecoder.readSwco());
 //		System.exit(0);
 		//END TEST-BUGPOINT
 		
-		if(!modelLibSVM) {
+		if(ArcEagerOnline) {
+			System.out.println("Feature number: "+dpc.getnFeature());
+			//write model to file
+			File modelPath;
+			if(argsReader)
+				modelPath = new File(mPath+"/dp.model");
+			else
+				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
+			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath)));
+			oos.writeObject(dpc);
+			oos.close();
+		}
+		else if(!modelLibSVM) {
 			//use saved configurations to do perceptron
 			Perceptron pc = new Perceptron(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel);
 			System.out.println("Feature number: "+pc.getnFeature());
@@ -610,9 +690,21 @@ public class ApplicationControl {
 		if(argsReader)
 			dataDir = new File(dataPath).getParent();
 		Perceptron pc = null;
+		DynamicPerceptron dpc = null;
 		LibClassifier lc = null;
 		LibClassifier lc2 = null;
-		if(!modelLibSVM) {
+		if(ArcEagerOnline) {
+			//read model from file
+			File modelPath;
+			if(argsReader)
+				modelPath = new File(mPath+"/dp.model");
+			else
+				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
+			ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath)));
+			dpc = (DynamicPerceptron) ois.readObject();
+			ois.close();
+		}
+		else if(!modelLibSVM) {
 			//read model from file
 			File modelPath;
 			if(argsReader)
@@ -705,7 +797,10 @@ public class ApplicationControl {
 		while(rd.hasNext()) {
 			count++;
 			Sentence st = rd.readNextTest();
-			if(ArcStandard) {
+			if(ArcEagerOnline) {
+				ArcEagerOnlineDecoder.doParsing(dpc, st);
+			}
+			else if(ArcStandard) {
 				if(!modelLibSVM) 
 					ArcStandardDecoder.doParsing(pc, st);
 				else {
