@@ -253,6 +253,8 @@ public class ApplicationControl {
 					ArcEagerOnlineDecoder.buildConfiguration(st, dpc, i);
 				}
 			}
+			
+			ArcEagerOnlineDecoder.resetCounter();
 		}
 		
 		if(ArcEagerOnline) {
@@ -570,6 +572,7 @@ public class ApplicationControl {
 					ArcEagerOnlineDecoder.buildConfiguration(st, dpc, i);
 				}
 			}
+			ArcEagerOnlineDecoder.resetCounter();
 		}
 		
 		//TEST-BUGPOINT

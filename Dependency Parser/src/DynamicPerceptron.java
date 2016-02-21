@@ -7,17 +7,17 @@ public class DynamicPerceptron implements Serializable {
 
 	private static final long serialVersionUID = 7849504885176176606L;
 	
-	private Integer nFeatureFull;
-	private HashMap<String, Integer> feamap;
-	private Weights[] wts;
-	private Integer nLabel;
+	protected Integer nFeatureFull;
+	protected HashMap<String, Integer> feamap;
+	protected Weights[] wts;
+	protected Integer nLabel;
 	
-	private Random rnd;
+	protected Random rnd;
 	
-	public static final int maxIter = 10;
+	public static final int maxIter = 15;
 	
-	private static final double pIncorrect = 0.05D;
-	private static final int dynamicIteration = 5;
+	protected static final double pIncorrect = 0.9D;
+	protected static final int dynamicIteration = 1;
 	
 	public DynamicPerceptron(int nLabels) {
 		wts=new Weights[nLabels];  //save weights for each label
@@ -33,8 +33,8 @@ public class DynamicPerceptron implements Serializable {
 		rnd = new Random();
 	}
 	
-	public void inputFeature(Feature f, int correctLabel, int predictLabel) {
-		if(correctLabel==predictLabel)
+	public void inputFeature(Feature f, int correctLabel, int predictLabel, int[] correctLabelList) {
+		if(correctLabelList[predictLabel]!=-1)  //correct[] contains predict 
 			return;
 		
 		String[] str=new String[Feature.nFeature];
@@ -87,7 +87,7 @@ public class DynamicPerceptron implements Serializable {
 			return nCorrect;
 	}
 	
-	private int findMax(double[] lst) {  //find max double in an array
+	protected int findMax(double[] lst) {  //find max double in an array
 		int maxn=-1;
 		double maxs=Double.NEGATIVE_INFINITY;
 		for(int i=0;i<lst.length;i++) {
@@ -99,7 +99,7 @@ public class DynamicPerceptron implements Serializable {
 		return maxn;
 	}
 	
-	private int[] findMaxList(double[] lst) {  //find max double in an array
+	protected int[] findMaxList(double[] lst) {  //find max double in an array
 		int[] maxn=new int[lst.length];
 		boolean[] used=new boolean[lst.length];
 		Arrays.fill(used, false);
@@ -196,7 +196,7 @@ public class DynamicPerceptron implements Serializable {
 		this.nLabel = nLabel;
 	}
 	
-	private class Weights implements Serializable{
+	protected class Weights implements Serializable{
 		//use for saving weight vector
 
 		private static final long serialVersionUID = 434242940165045156L;
@@ -207,7 +207,6 @@ public class DynamicPerceptron implements Serializable {
 			wl=new HashMap<Integer,Double>();
 		}
 
-		@SuppressWarnings("unused")
 		public int getLabel() {
 			return label;
 		}
@@ -220,7 +219,6 @@ public class DynamicPerceptron implements Serializable {
 			return wl;
 		}
 
-		@SuppressWarnings("unused")
 		public void setWeightList(HashMap<Integer, Double> wl) {
 			this.wl = wl;
 		}
