@@ -1,3 +1,4 @@
+import java.util.Arrays;
 import java.util.LinkedList;
 
 
@@ -7,7 +8,7 @@ public class State {
 	private int[] heads;
 	private int[] leftMost;
 	private int[] rightMost;
-	private boolean justShift;
+	private boolean[] unshift;
 	
 	private int size;
 	//to save state in parsing process, one state per transition
@@ -18,6 +19,7 @@ public class State {
 		heads = new int[size];
 		leftMost = new int[size];
 		rightMost = new int[size];
+		unshift = new boolean[size];
 		
 		Sentence ss = s.clone();
 		
@@ -30,6 +32,7 @@ public class State {
 			heads[i]=-1;
 			leftMost[i]=-1;
 			rightMost[i]=-1;
+			unshift[i]=true;
 		}
 	}
 	
@@ -39,20 +42,24 @@ public class State {
 		heads=h;
 		leftMost=l;
 		rightMost=r;
+		size=h.length;
+		unshift = new boolean[size];
+		Arrays.fill(unshift, true);
 	}
 	
-	public State(LinkedList<Word> b, LinkedList<Word> s, int[] h, int[] l, int[] r, boolean j) {
+	public State(LinkedList<Word> b, LinkedList<Word> s, int[] h, int[] l, int[] r, boolean[] u) {
 		buffer=b;
 		stack=s;
 		heads=h;
 		leftMost=l;
 		rightMost=r;
-		justShift=j;
+		unshift=u;
+		size=h.length;
 	}
 	
 	@SuppressWarnings("unchecked")
 	public State clone() {
-		return new State((LinkedList<Word>)buffer.clone(),(LinkedList<Word>)stack.clone(),heads.clone(),leftMost.clone(),rightMost.clone(),justShift);
+		return new State((LinkedList<Word>)buffer.clone(),(LinkedList<Word>)stack.clone(),heads.clone(),leftMost.clone(),rightMost.clone(),unshift.clone());
 	}
 	
 	public Feature buildFeature(Sentence stc) {  //build feature with this state
@@ -119,11 +126,11 @@ public class State {
 		this.heads = heads;
 	}
 	
-	public void setJustShift(boolean justShift) {
-		this.justShift=justShift;
+	public void setUnshift(int id) {
+		this.unshift[id]=false;
 	}
 	
-	public boolean getJustShift() {
-		return justShift;
+	public boolean getUnshift(int id) {
+		return this.unshift[id];
 	}
 }

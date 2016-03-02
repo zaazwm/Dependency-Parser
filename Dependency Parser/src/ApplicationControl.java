@@ -37,6 +37,11 @@ public class ApplicationControl {
 	public static boolean argsReader=false; //true to read args[], false to use default settings
 	public static boolean newPredArcTag=false; //true to predict arc tags separately
 	public static boolean ArcEagerOnline=false; //true to only use ArcEager, Dynamic Oracle, Unshift supported
+	public static boolean OnlineStaticPerceptron=false;  //use ArcEagerOnline for decoder, supporting static oracle
+	public static boolean OnlineDynamicPerceptron=false;  //use ArcEagerOnline for decoder, supporting Dynamic Oracle
+	public static boolean OnlineDynamicUnshiftPerc=true;  //use ArcEagerOnline for decoder, supporting Unshift & Dynamic Oracle
+	public static int AfterEndSolution = 0;  //select after-end non-terminal solution
+											 //0 - "Ignore", 1 - "All Root", 2 - "All RightArc", 3 - "All LeftArc", 4 - "By Oracle"
 
 	public static void main(String[] args) throws IOException, ClassNotFoundException, InvalidInputDataException, ParseException {
 		//main entry to application
@@ -59,6 +64,11 @@ public class ApplicationControl {
 		para.addOption("dev", false, "use development data to compare result");
 		para.addOption("h", "help", false, "print help message");
 		para.addOption("AEO", "AEOnline", false, "use ArcEagerOnline for decoder, supporting Unshift & Dynamic Oracle");
+		para.addOption("OSP", "OnlineStaticPerceptron", false, "use ArcEagerOnline for decoder, supporting static oracle <default>");
+		para.addOption("ODP", "OnlineDynamicPerceptron", false, "use ArcEagerOnline for decoder, supporting Dynamic Oracle");
+		para.addOption("ODUP", "OnlineDynamicUnshiftPerc", false, "use ArcEagerOnline for decoder, supporting Unshift & Dynamic Oracle");
+		para.addOption("AES", "AfterEndSolution", true, "Choose the after end solution [1-5]");
+		
 		
 		CommandLine cl = parser.parse(para, args);
 		
@@ -125,6 +135,30 @@ public class ApplicationControl {
 		if(cl.hasOption("AEO") || cl.hasOption("AEOnline"))
 			ArcEagerOnline=true;
 		
+		if(cl.hasOption("OSP") || cl.hasOption("OnlineStaticPerceptron"))
+			OnlineStaticPerceptron=true;
+		
+		if(cl.hasOption("ODP") || cl.hasOption("OnlineDynamicPerceptron"))
+			OnlineDynamicPerceptron=true;
+		
+		if(cl.hasOption("ODUP") || cl.hasOption("OnlineDynamicUnshiftPerc"))
+			OnlineDynamicUnshiftPerc=true;
+		
+		if(cl.hasOption("AES")) {
+			AfterEndSolution = Integer.parseInt(cl.getOptionValue("AES"));
+			if(AfterEndSolution<=0 || AfterEndSolution>5)
+				AfterEndSolution = 0;
+			else
+				AfterEndSolution--;
+		}
+		if(cl.hasOption("AfterEndSolution")) {
+			AfterEndSolution = Integer.parseInt(cl.getOptionValue("AfterEndSolution"));
+			if(AfterEndSolution<=0 || AfterEndSolution>5)
+				AfterEndSolution = 0;
+			else
+				AfterEndSolution--;
+		}
+		
 		System.out.println("Arguments Readed: ");
 		
 		System.out.println("testMark = "+testMark);
@@ -138,6 +172,10 @@ public class ApplicationControl {
 		System.out.println("newPredArcTag = "+newPredArcTag);
 		System.out.println("argsReader = "+argsReader);
 		System.out.println("ArcEagerOnline = "+ArcEagerOnline);
+		System.out.println("OnlineStaticPerceptron = "+OnlineStaticPerceptron);
+		System.out.println("OnlineDynamicPerceptron = "+OnlineDynamicPerceptron);
+		System.out.println("OnlineDynamicUnshiftPerc = "+OnlineDynamicUnshiftPerc);
+		System.out.println("AfterEndSolution = "+AfterEndSolution);
 		
 		//run the program
 		String dataPath = null;
@@ -200,320 +238,17 @@ public class ApplicationControl {
 	}
 	
 	public static void TrainModel(String dataPath) throws IOException, InvalidInputDataException {
-		ArcStandardDecoder.resetMemo();
-		ArcStandardDecoder.resetSwco();
-		LinkedList<Feature> fl = new LinkedList<Feature>();
-		LinkedList<TagFeature> tfl = new LinkedList<TagFeature>();
-		//read file
 		String dataDir = null;
 		if(argsReader)
 			dataDir = new File(dataPath).getParent();
-		Reader rd;
-		if(argsReader)
-			rd = new Reader(dataPath);
-		else {
-			if(smallTrainData)
-				rd = new Reader("/Users/zaa/Desktop/VIS hiwi/dep_parsing/wsj_train.only-projective.first-5k.conll06");
-			else
-				rd = new Reader("/Users/zaa/Desktop/VIS hiwi/dep_parsing/wsj_train.only-projective.conll06");
-		}
-		
-		DynamicPerceptron dpc = new DynamicPerceptron(ArcEagerOnlineDecoder.nLabel);
-		LinkedList<Sentence> stList = new LinkedList<Sentence>();
-		//read sentences and calc & save configurations
-		while(rd.hasNext()) {
-			LinkedList<Configuration> cl = new LinkedList<Configuration>();
-			
-			if(ArcEagerOnline) {
-				Sentence st = rd.readNext();
-				ArcEagerOnlineDecoder.buildConfiguration(st, dpc, 1);
-				stList.add(st);
-			}
-			else if(ArcStandard) {
-				ArcStandardDecoder.buildConfiguration(rd.readNext(), cl, tfl);
-			}
-			else {
-				ArcEagerDecoder.buildConfiguration(rd.readNext(), cl, tfl);
-			}
-			
-			for(Configuration cf : cl) {
-				fl.add(cf.buildFeature());
-			}
-			
-			//to build Tag Feature separately, not online (valid if more complex feature)
-			//ArcTager.buildTagFeature(rd.readLast(), tfl);
-		}
-		
-		rd.close();
-		
-		//online training iteration for ArcEagerOnline
-		if(ArcEagerOnline) {
-			for(int i=2;i<=DynamicPerceptron.maxIter;i++) {
-				for(Sentence st : stList) {
-					ArcEagerOnlineDecoder.buildConfiguration(st, dpc, i);
-				}
-			}
-			
-			ArcEagerOnlineDecoder.resetCounter();
-		}
-		
-		if(ArcEagerOnline) {
-			System.out.println("Feature number: "+dpc.getnFeature());
-			//write model to file
-			File modelPath;
-			if(argsReader)
-				modelPath = new File(dataDir+"/dp.model");
-			else
-				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
-			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath)));
-			oos.writeObject(dpc);
-			oos.close();
-		}
-		else if(!modelLibSVM) {
-			//use saved configurations to do perceptron
-			Perceptron pc = new Perceptron(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel);
-			System.out.println("Feature number: "+pc.getnFeature());
-			//write model to file
-			File modelPath;
-			if(argsReader)
-				modelPath = new File(dataDir+"/dp.model");
-			else
-				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
-			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath)));
-			oos.writeObject(pc);
-			oos.close();
-		}
-		else if(!modelLibLinear) {
-			//use saved configurations to do libsvm
-			
-			LibClassifier pc;
-			if(argsReader)
-				pc = new LibSVM(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
-						dataDir+"/dp.model", dataDir+"/dp.feature");
-			else
-				pc = new LibSVM(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
-					"/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.feature");
-			System.out.println("Feature number: "+pc.getnFeature()+(predictArcTag?(" ArcTag #: "+pc.getnTag()):"")+(ArcStandard?(" Non-Projective #: "+ArcStandardDecoder.readMemo()+" swap #: "+ArcStandardDecoder.readSwco()):"")+"\n\n");
-			//write model to file
-			File modelPath;
-			if(argsReader)
-				modelPath = new File(dataDir+"/dp.mapping");
-			else
-				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.mapping");
-			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath)));
-			oos.writeObject(pc);
-			oos.close();
-			
-			//to train tagger model separately 
-			if(newPredArcTag) {
-				LibClassifier pc2;
-				if(argsReader)
-					pc2 = new LibSVM(tfl, dataDir+"/tg.model", dataDir+"/tg.feature");
-				else
-					pc2 = new LibSVM(tfl, "/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.feature");
-				System.out.println("ArcTag Feature: "+pc2.getnFeature()+" ArcTag #: "+pc2.getnNewTag());
-				//write model to file
-				File modelPath2;
-				if(argsReader)
-					modelPath2 = new File(dataDir+"/tg.mapping");
-				else
-					modelPath2 = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.mapping");
-				ObjectOutputStream oos2 = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath2)));
-				oos2.writeObject(pc2);
-				oos2.close();
-			}
-		}
-		else {
-			//use saved configurations to do liblinear
-			LibClassifier pc;
-			if(argsReader)
-				pc = new LibLinear(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
-					dataDir+"/dp.model", dataDir+"/dp.feature");
-			else
-				pc = new LibLinear(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
-						"/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.feature");
-			System.out.println("Feature number: "+pc.getnFeature()+(predictArcTag?(" ArcTag #: "+pc.getnTag()):"")+(ArcStandard?(" Non-Projective #: "+ArcStandardDecoder.readMemo()+" swap #: "+ArcStandardDecoder.readSwco()):"")+"\n\n");
-			//write model to file
-			File modelPath;
-			if(argsReader)
-				modelPath = new File(dataDir+"/dp.mapping");
-			else
-				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.mapping");
-			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath)));
-			oos.writeObject(pc);
-			oos.close();
-			
-			//to train tagger model separately 
-			if(newPredArcTag) {
-				LibClassifier pc2;
-				if(argsReader)
-					pc2 = new LibLinear(tfl, dataDir+"/tg.model", dataDir+"/tg.feature");
-				else
-					pc2 = new LibLinear(tfl, "/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.feature");
-				System.out.println("ArcTag Feature: "+pc2.getnFeature()+" ArcTag #: "+pc2.getnNewTag());
-				//write model to file
-				File modelPath2;
-				if(argsReader)
-					modelPath2 = new File(dataDir+"/tg.mapping");
-				else
-					modelPath2 = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.mapping");
-				ObjectOutputStream oos2 = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath2)));
-				oos2.writeObject(pc2);
-				oos2.close();
-			}
-		}
+		TrainModel(dataPath, dataDir);
 	}
 	
 	public static void TestModel(String dataPath) throws FileNotFoundException, IOException, ClassNotFoundException {
-		//read file
 		String dataDir = null;
 		if(argsReader)
 			dataDir = new File(dataPath).getParent();
-		Perceptron pc = null;
-		DynamicPerceptron dpc = null;
-		LibClassifier lc = null;
-		LibClassifier lc2 = null;
-		if(ArcEagerOnline) {
-			//read model from file
-			File modelPath;
-			if(argsReader)
-				modelPath = new File(dataDir+"/dp.model");
-			else
-				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
-			ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath)));
-			dpc = (DynamicPerceptron) ois.readObject();
-			ois.close();
-		}
-		else if(!modelLibSVM) {
-			//read model from file
-			File modelPath;
-			if(argsReader)
-				modelPath = new File(dataDir+"/dp.model");
-			else
-				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
-			ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath)));
-			pc = (Perceptron) ois.readObject();
-			ois.close();
-		}
-		else if(!modelLibLinear) {
-			//read model from file
-			File modelPath;
-			if(argsReader)
-				modelPath = new File(dataDir+"/dp.mapping");
-			else
-				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.mapping");
-			ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath)));
-			lc = (LibSVM) ois.readObject();
-			ois.close();
-			if(argsReader)
-				lc.readModel(dataDir+"/dp.model");
-			else
-				lc.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
-			
-			//to read tagger model separately 
-			if(newPredArcTag) {
-				File modelPath2;
-				if(argsReader)
-					modelPath2 = new File(dataDir+"/tg.mapping");
-				else
-					modelPath2 = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.mapping");
-				ObjectInputStream ois2 = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath2)));
-				lc2 = (LibSVM) ois2.readObject();
-				ois2.close();
-				if(argsReader)
-					lc2.readModel(dataDir+"/tg.model");
-				else
-					lc2.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.model");
-			}
-		}
-		else {
-			File modelPath;
-			if(argsReader)
-				modelPath = new File(dataDir+"/dp.mapping");
-			else
-				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.mapping");
-			ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath)));
-			lc = (LibLinear) ois.readObject();
-			ois.close();
-			
-			if(argsReader)
-				lc.readModel(dataDir+"/dp.model");
-			else
-				lc.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
-			
-			//to read tagger model separately 
-			if(newPredArcTag) {
-				File modelPath2;
-				if(argsReader)
-					modelPath2 = new File(dataDir+"/tg.mapping");
-				else
-					modelPath2 = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.mapping");
-				ObjectInputStream ois2 = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath2)));
-				lc2 = (LibLinear) ois2.readObject();
-				ois2.close();
-				
-				if(argsReader)
-					lc2.readModel(dataDir+"/tg.model");
-				else
-					lc2.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.model");
-				
-			}
-		}
-		
-		Reader rd;
-		if(argsReader)
-			rd = new Reader(dataPath);
-		else
-			rd = new Reader("/Users/zaa/Desktop/VIS hiwi/dep_parsing/wsj_dev.conll06");
-		Writer wt;
-		if(argsReader)
-			wt = new Writer(dataPath+".result");
-		else
-			wt = new Writer("/Users/zaa/Desktop/VIS hiwi/dep_parsing/wsj_dev.result.conll06");
-		
-		System.out.println("Reading model done.");
-		//read sentences from test file and do parsing
-		int count=0;
-		while(rd.hasNext()) {
-			count++;
-			Sentence st = rd.readNextTest();
-			if(ArcEagerOnline) {
-				ArcEagerOnlineDecoder.doParsing(dpc, st);
-			}
-			else if(ArcStandard) {
-				if(!modelLibSVM) 
-					ArcStandardDecoder.doParsing(pc, st);
-				else {
-					ArcStandardDecoder.doParsing(lc, st);
-					//predict tag
-					if(newPredArcTag)
-						ArcTager.tag(lc2, st);
-				}
-					
-			}
-			else {
-				if(!modelLibSVM) 
-					ArcEagerDecoder.doParsing(pc, st);
-				else {
-					ArcEagerDecoder.doParsing(lc, st);
-					//predict tag
-					if(newPredArcTag)
-						ArcTager.tag(lc2, st);
-				}
-			}
-			
-			
-			
-			//write parsing result to file
-			wt.write(st);
-			
-			if(count%100==0) {
-				System.out.println(count+" sentences labeled.");
-			}
-		}
-		
-		rd.close();
-		wt.close();
+		TestModel(dataPath, dataDir);
 	}
 	
 	public static void TrainModel(String dataPath, String mPath) throws IOException, InvalidInputDataException {
@@ -536,7 +271,20 @@ public class ApplicationControl {
 				rd = new Reader("/Users/zaa/Desktop/VIS hiwi/dep_parsing/wsj_train.only-projective.conll06");
 		}
 		
-		DynamicPerceptron dpc = new DynamicPerceptron(ArcEagerOnlineDecoder.nLabel);
+		OnlinePerceptron opc = null;
+		if(OnlineStaticPerceptron) {
+			ArcEagerOnlineDecoder.disableUnshift();
+			opc = new StaticPerceptron(ArcEagerOnlineDecoder.nLabel);
+		}
+		else if(OnlineDynamicPerceptron) {
+			ArcEagerOnlineDecoder.disableUnshift();
+			opc = new DynamicPerceptron(ArcEagerOnlineDecoder.nLabel);
+		}
+		else if(OnlineDynamicUnshiftPerc) {
+			ArcEagerOnlineDecoder.enableUnshift();
+			opc = new DynamicPerceptron(ArcEagerOnlineDecoder.nLabel);
+		}
+		
 		LinkedList<Sentence> stList = new LinkedList<Sentence>();
 		
 		//read sentences and calc & save configurations
@@ -545,7 +293,7 @@ public class ApplicationControl {
 			
 			if(ArcEagerOnline) {
 				Sentence st = rd.readNext();
-				ArcEagerOnlineDecoder.buildConfiguration(st, dpc, 1);
+				ArcEagerOnlineDecoder.buildConfiguration(st, opc, 1);
 				stList.add(st);
 			}
 			else if(ArcStandard) {
@@ -567,11 +315,12 @@ public class ApplicationControl {
 		
 		//online training iteration for ArcEagerOnline
 		if(ArcEagerOnline) {
-			for(int i=2;i<=DynamicPerceptron.maxIter;i++) {
+			for(int i=2;i<=OnlinePerceptron.maxIter;i++) {
 				for(Sentence st : stList) {
-					ArcEagerOnlineDecoder.buildConfiguration(st, dpc, i);
+					ArcEagerOnlineDecoder.buildConfiguration(st, opc, i);
 				}
 			}
+			opc.averageWeights();
 			ArcEagerOnlineDecoder.resetCounter();
 		}
 		
@@ -581,7 +330,7 @@ public class ApplicationControl {
 		//END TEST-BUGPOINT
 		
 		if(ArcEagerOnline) {
-			System.out.println("Feature number: "+dpc.getnFeature());
+			System.out.println("Feature number: "+opc.getnFeature());
 			//write model to file
 			File modelPath;
 			if(argsReader)
@@ -589,7 +338,7 @@ public class ApplicationControl {
 			else
 				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
 			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath)));
-			oos.writeObject(dpc);
+			oos.writeObject(opc);
 			oos.close();
 		}
 		else if(!modelLibSVM) {
@@ -693,7 +442,7 @@ public class ApplicationControl {
 		if(argsReader)
 			dataDir = new File(dataPath).getParent();
 		Perceptron pc = null;
-		DynamicPerceptron dpc = null;
+		OnlinePerceptron opc = null;
 		LibClassifier lc = null;
 		LibClassifier lc2 = null;
 		if(ArcEagerOnline) {
@@ -704,7 +453,18 @@ public class ApplicationControl {
 			else
 				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
 			ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath)));
-			dpc = (DynamicPerceptron) ois.readObject();
+			if(OnlineStaticPerceptron) {
+				ArcEagerOnlineDecoder.disableUnshift();
+				opc = (StaticPerceptron) ois.readObject();
+			}
+			else if(OnlineDynamicPerceptron) {
+				ArcEagerOnlineDecoder.disableUnshift();
+				opc = (DynamicPerceptron) ois.readObject();
+			}
+			else if(OnlineDynamicUnshiftPerc) {
+				ArcEagerOnlineDecoder.enableUnshift();
+				opc = (DynamicPerceptron) ois.readObject();
+			}
 			ois.close();
 		}
 		else if(!modelLibSVM) {
@@ -801,7 +561,7 @@ public class ApplicationControl {
 			count++;
 			Sentence st = rd.readNextTest();
 			if(ArcEagerOnline) {
-				ArcEagerOnlineDecoder.doParsing(dpc, st);
+				ArcEagerOnlineDecoder.doParsing(opc, st);
 			}
 			else if(ArcStandard) {
 				if(!modelLibSVM) 

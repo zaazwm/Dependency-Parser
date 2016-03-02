@@ -11,24 +11,27 @@ import javax.swing.JPanel;
 
 import de.bwaldvogel.liblinear.InvalidInputDataException;
 
-// A simple GUI saving/reading model in the same folder of the data file.
+public class GUIThesis implements GUI {
 
-public class GUI1 implements GUI{
-	
 	public JFrame mainwindow;
 	public String filepath = null;
 	public String modelpath = null;
 	public Checkbox predcb;
 	public JComboBox<String> training;
+	public JComboBox<String> decoder;
+	public JComboBox<String> afterend;
 	public Button filebtn;
+	public Button filebtn2;
 	
-	public static final String[] decoders = {"ArcStandard", "ArcEager", "ArcEagerOnline"};
-	public static final String[] trainings = {"Perceptron", "AvePerceptron", "LibSVM", "LibLinear"};
+	public static final String[] decoders = {"ArcEager", "ArcEager+Unshift"};
+	public static final String[] trainings = {"StaticPerceptron", "DynamicPerceptron"};
 	public static final String[] methods = {"Train", "Dev", "Test"};
+	public static final String[] afterends = {"Ignore", "All Root", "All RightArc", "All LeftArc", "By Oracle"};
 
 	public static void main(String[] args) {
 		//main entrance for GUI program
-		GUI1 gui = new GUI1();
+		GUIThesis gui = new GUIThesis();
+		ApplicationControl.ArcEagerOnline=true;
 		gui.buildwindows();
 	}
 
@@ -37,49 +40,64 @@ public class GUI1 implements GUI{
 		//build the main window
 		mainwindow = new JFrame();
 		mainwindow.setTitle("Dependency Parser");
-		mainwindow.setSize(900, 60);
+		mainwindow.setSize(600, 95);
 		//mainwindow.setLocation(100, 100);
 		mainwindow.setLocationRelativeTo(null);
 		mainwindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		JPanel panel = new JPanel(new FlowLayout());
 		panel.setSize(mainwindow.getSize());
 		
-		FileDialog dlg = new FileDialog(mainwindow, "Open");
+		FileDialog dlg = new FileDialog(mainwindow, "Open a File");
 		filebtn = new Button("Open File");
 		panel.add(filebtn);
-		filebtn.addActionListener(new FileButtonActionListener(GUI1.this, dlg));
+		filebtn.addActionListener(new FileButtonActionListener(GUIThesis.this, dlg));
 		
-		JComboBox<String> decoder = new JComboBox<String>(decoders);
+		System.setProperty("apple.awt.fileDialogForDirectories", "true");
+		FileDialog dlg2 = new FileDialog(mainwindow, "Choose a Folder");
+		filebtn2 = new Button("Open Model");
+		panel.add(filebtn2);
+		filebtn2.addActionListener(new ModelButtonActionListener(GUIThesis.this, dlg2));
+		System.setProperty("apple.awt.fileDialogForDirectories", "false");
+		
+		decoder = new JComboBox<String>(decoders);
 		training = new JComboBox<String>(trainings);
 		JComboBox<String> method = new JComboBox<String>(methods);
-		decoder.addActionListener(new ComboBoxActionListener(GUI1.this));
-		training.addActionListener(new ComboBoxActionListener(GUI1.this));
-		method.addActionListener(new ComboBoxActionListener(GUI1.this));
+		afterend = new JComboBox<String>(afterends);
+		decoder.addActionListener(new ComboBoxActionListener(GUIThesis.this));
+		training.addActionListener(new ComboBoxActionListener(GUIThesis.this));
+		method.addActionListener(new ComboBoxActionListener(GUIThesis.this));
+		afterend.addActionListener(new ComboBoxActionListener(GUIThesis.this));
 		method.setVisible(true);
 		decoder.setVisible(true);
 		training.setVisible(true);
+		afterend.setVisible(true);
 		JLabel dlbl= new JLabel("Decoder");
 		JLabel tlbl= new JLabel("Training Model");
 		JLabel mlbl= new JLabel("Usage");
+		JLabel albl= new JLabel("After End");
 		panel.add(mlbl);
 		panel.add(method);
 		panel.add(dlbl);
 		panel.add(decoder);
 		panel.add(tlbl);
 		panel.add(training);
+		panel.add(albl);
+		panel.add(afterend);
 		
-		predcb = new Checkbox("ArcTags", true);
+		predcb = new Checkbox("ArcTags", false);
 		predcb.addItemListener(new CheckBoxItemListener());
 		panel.add(predcb);
-		predcb.setVisible(true);
+		predcb.setVisible(false);
 		
-		decoder.setSelectedIndex(0);
-		training.setSelectedIndex(3);
+		//default values
+		decoder.setSelectedIndex(1);
+		training.setSelectedIndex(1);
 		method.setSelectedIndex(0);
+		afterend.setSelectedIndex(0);
 		predcb.setState(false);
 		
 		Button runbtn = new Button("Run");
-		runbtn.addActionListener(new RunButtonActionListener(GUI1.this));
+		runbtn.addActionListener(new RunButtonActionListener(GUIThesis.this));
 		panel.add(runbtn);
 		runbtn.setVisible(true);
 		
@@ -106,11 +124,16 @@ public class GUI1 implements GUI{
 		System.out.println("newPredArcTag = "+ApplicationControl.newPredArcTag);
 		System.out.println("argsReader = "+ApplicationControl.argsReader);
 		System.out.println("ArcEagerOnline = "+ApplicationControl.ArcEagerOnline);
+		System.out.println("OnlineStaticPerceptron = "+ApplicationControl.OnlineStaticPerceptron);
+		System.out.println("OnlineDynamicPerceptron = "+ApplicationControl.OnlineDynamicPerceptron);
+		System.out.println("OnlineDynamicUnshiftPerc = "+ApplicationControl.OnlineDynamicUnshiftPerc);
+		System.out.println("AfterEndSolution = "+ApplicationControl.AfterEndSolution);
 		System.out.println("filePath = "+filepath);
+		System.out.println("modelPath = "+modelpath);
 		
 		
 		try {
-			ApplicationControl.run(filepath);
+			ApplicationControl.run(filepath, modelpath);
 		} catch (ClassNotFoundException | IOException | InvalidInputDataException e) {
 			e.printStackTrace();
 		}
@@ -120,64 +143,60 @@ public class GUI1 implements GUI{
 	@Override
 	public void processCombo(String selected) {
 		//deal with combo boxes, change the parameters
-		
+		ApplicationControl.AfterEndSolution=afterend.getSelectedIndex();
 		//if(selected.equals(decoders[0])) {
-		if(selected.equals("ArcStandard")) {
-			ApplicationControl.ArcStandard=true;
-			training.setEnabled(true);
+		if(selected.equals("ArcEager+Unshift")) {
+			ApplicationControl.ArcEagerOnline=true;
+			ApplicationControl.OnlineDynamicUnshiftPerc=true;
+			ApplicationControl.OnlineDynamicPerceptron=false;
+			ApplicationControl.OnlineStaticPerceptron=false;
+			training.setEnabled(false);
+			training.setSelectedIndex(1);
 			return;
 		}
 		//if(selected.equals(decoders[1])) {
 		if(selected.equals("ArcEager")) {
-			ApplicationControl.ArcStandard=false;
+			ApplicationControl.ArcEagerOnline=true;
+			ApplicationControl.OnlineDynamicUnshiftPerc=false;
+			if(training.getSelectedIndex()==0) {
+				ApplicationControl.OnlineStaticPerceptron=true;
+				ApplicationControl.OnlineDynamicPerceptron=false;
+			}
+			else if(training.getSelectedIndex()==1) {
+				ApplicationControl.OnlineStaticPerceptron=false;
+				ApplicationControl.OnlineDynamicPerceptron=true;
+			}
 			training.setEnabled(true);
 			return;
 		}
 		//if(selected.equals(trainings[0])) {
-		if(selected.equals("Perceptron")) {
-			ApplicationControl.AvePerceptron=false;
-			ApplicationControl.modelLibSVM=false;
-			predcb.setEnabled(false);
-			predcb.setState(false);
+		if(selected.equals("StaticPerceptron")) {
+			ApplicationControl.OnlineDynamicUnshiftPerc=false;
+			ApplicationControl.OnlineDynamicPerceptron=false;
+			ApplicationControl.OnlineStaticPerceptron=true;
+			decoder.setSelectedIndex(0);
+			decoder.setEnabled(false);
 			return;
 		}
 		//if(selected.equals(decoders[2])) {
-		if(selected.equals("ArcEagerOnline")) {
-			ApplicationControl.ArcEagerOnline=true;
-			ApplicationControl.AvePerceptron=false;
-			ApplicationControl.modelLibSVM=false;
-			predcb.setEnabled(false);
-			predcb.setState(false);
-			training.setSelectedIndex(0);
-			training.setEnabled(false);
-			return;
-		}
-		//if(selected.equals(trainings[1])) {
-		if(selected.equals("AvePerceptron")) {
-			ApplicationControl.AvePerceptron=true;
-			ApplicationControl.modelLibSVM=false;
-			predcb.setEnabled(false);
-			predcb.setState(false);
-			return;
-		}
-		//if(selected.equals(trainings[2])) {
-		if(selected.equals("LibSVM")) {
-			ApplicationControl.modelLibLinear=false;
-			ApplicationControl.modelLibSVM=true;
-			predcb.setEnabled(true);
-			return;
-		}
-		//if(selected.equals(trainings[3])) {
-		if(selected.equals("LibLinear")) {
-			ApplicationControl.modelLibLinear=true;
-			ApplicationControl.modelLibSVM=true;
-			predcb.setEnabled(true);
+		if(selected.equals("DynamicPerceptron")) {
+			ApplicationControl.OnlineStaticPerceptron=false;
+			if(decoder.getSelectedIndex()==0) {
+				ApplicationControl.OnlineDynamicPerceptron=true;
+				ApplicationControl.OnlineDynamicUnshiftPerc=false;
+			}
+			else if(decoder.getSelectedIndex()==1) {
+				ApplicationControl.OnlineDynamicPerceptron=false;
+				ApplicationControl.OnlineDynamicUnshiftPerc=true;
+			}
+			decoder.setEnabled(true);
 			return;
 		}
 		//if(selected.equals(methods[0])) {
 		if(selected.equals("Train")) {
 			ApplicationControl.testMark=false;
 			ApplicationControl.argsReader=true;
+			afterend.setEnabled(false);
 			return;
 		}
 		//if(selected.equals(methods[1])) {
@@ -185,6 +204,7 @@ public class GUI1 implements GUI{
 			ApplicationControl.testMark=true;
 			ApplicationControl.argsReader=true;
 			ApplicationControl.devMark=true;
+			afterend.setEnabled(true);
 			return;
 		}
 		//if(selected.equals(methods[2])) {
@@ -192,6 +212,7 @@ public class GUI1 implements GUI{
 			ApplicationControl.testMark=true;
 			ApplicationControl.argsReader=true;
 			ApplicationControl.devMark=false;
+			afterend.setEnabled(true);
 			return;
 		}
 	}
@@ -233,6 +254,7 @@ public class GUI1 implements GUI{
 
 	@Override
 	public Button getFilebtn2() {
-		return null;
+		return this.filebtn2;
 	}
+
 }

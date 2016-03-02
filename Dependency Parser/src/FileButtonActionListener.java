@@ -21,7 +21,7 @@ public class FileButtonActionListener implements ActionListener{
 			gui.setFilepath(null);
 		if(gui instanceof GUI1)
 			gui.getMainwindow().setTitle("Dependency Parser - Data: "+(gui.getFilepath()==null?"No Data File":gui.getFilepath()));
-		if(gui instanceof GUI2)
+		if(gui instanceof GUI2 || gui instanceof GUIThesis)
 			gui.getMainwindow().setTitle("Dependency Parser - Data: "+(gui.getFilepath()==null?"No Data File":gui.getFilepath())+" Model: "+(gui.getModelPath()==null?"No Model File":gui.getModelPath()));
 		//System.out.println("Opened: "+gui.filepath);
 	}

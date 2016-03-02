@@ -41,6 +41,7 @@ public class GUI2 implements GUI{
 		mainwindow.setSize(1000, 60);
 		//mainwindow.setLocation(100, 100);
 		mainwindow.setLocationRelativeTo(null);
+		mainwindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		JPanel panel = new JPanel(new FlowLayout());
 		panel.setSize(mainwindow.getSize());
 		

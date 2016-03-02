@@ -4,170 +4,17 @@ import java.util.LinkedList;
 
 @SuppressWarnings("unused")
 public class ArcEagerOnlineDecoder {
-	public static final int nLabel = 5;
+	public static int nLabel = 4;
 	public static final String transition3rdName = "Reduce"; 
 	public static final String transition4thName = "Unshift"; 
-	public static int[] sentenceCount = new int[DynamicPerceptron.maxIter];
+	public static int[] sentenceCount = new int[OnlinePerceptron.maxIter];
+	private static boolean useUnshift = false;
 	
-	public static void buildConfiguration(Sentence st, DynamicPerceptron model) {
-		sentenceCount[0]++;
-		State s = new State(st);
-		while(!(s.getBuffer().isEmpty())) {
-			Configuration conf;
-			int nCorrect = -1;
-			int nPredict = -1;
-			int[] nlPredict = model.findBestList(s.buildFeature(st));
-			
-			//legal check for predict
-			for(int p : nlPredict) {
-				if(p==Configuration.getConfToInt("LeftArc")) {
-					if(legalLeftArc(s)) {
-						nPredict=p;
-						break;
-					}
-				}
-				else if(p==Configuration.getConfToInt("RightArc")) {
-					if(legalRightArc(s)) {
-						nPredict=p;
-						break;
-					}
-				}
-				else if(p==Configuration.getConfToInt("Reduce")) {
-					if(legalReduce(s)) {
-						nPredict=p;
-						break;
-					}
-				}
-				else if(p==Configuration.getConfToInt("Unshift")) {
-					if(legalUnshift(s)) {
-						nPredict=p;
-						break;
-					}
-				}
-				else if(p==Configuration.getConfToInt("Shift")) {
-					nPredict=p;
-					break;
-				}
-			}
-			
-			//correct assignment //TODO: need better cost function
-			int[] nlCorrect = new int[nLabel];
-			Arrays.fill(nlCorrect, -1);
-			if(canLeftArc(s)) {
-				nlCorrect[Configuration.getConfToInt("LeftArc")]=Configuration.getConfToInt("LeftArc");
-			}
-			if(canRightArc(s)) {
-				nlCorrect[Configuration.getConfToInt("RightArc")]=Configuration.getConfToInt("RightArc");
-			}
-			if(canReduce(s)) {
-				nlCorrect[Configuration.getConfToInt("Reduce")]=Configuration.getConfToInt("Reduce");
-			}
-			if(canUnshift(s)) {
-				nlCorrect[Configuration.getConfToInt("Unshift")]=Configuration.getConfToInt("Unshift");
-			}
-			if(canShift(s)){
-				nlCorrect[Configuration.getConfToInt("Shift")]=Configuration.getConfToInt("Shift");
-			}
-			
-			//argmax of correct assignments
-			for(int p : nlPredict) {
-				if(nlCorrect[p]!=-1) {
-					nCorrect=p;
-					break;
-				}
-			}
-			if(nCorrect==-1)
-				nCorrect=Configuration.getConfToInt("Shift");
-			
-			//update()
-//			if(nCorrect != nPredict) {
-//				System.out.println("C: "+Configuration.getConfToString(nCorrect)+" P: "+Configuration.getConfToString(nPredict));
-//				try {
-//					System.out.println("update found in b:"+s.getBuffer().peekFirst().getForm()+ " s:"+s.getStack().peekLast().getForm());
-//				} catch (NullPointerException e) {
-//					System.out.println("update found! NullPointerException");
-//				}
-//			}
-			
-			model.inputFeature(s.buildFeature(st), nCorrect, nPredict, nlCorrect);
-			
-			//explore()
-			int nNext = -1;
-			nNext = model.explore(nCorrect, nPredict);
-			
-//			if(nCorrect != nNext) {
-//				System.out.println("C: "+Configuration.getConfToString(nCorrect)+" P: "+Configuration.getConfToString(nPredict));
-//				try {
-//					System.out.println("dynamic found in b:"+s.getBuffer().peekFirst().getForm()+ " s:"+s.getStack().peekLast().getForm());
-//				} catch (NullPointerException e) {
-//					System.out.println("dynamic found! NullPointerException");
-//				}
-//			}
-			
-			//perform transition
-			if(nNext==Configuration.getConfToInt("LeftArc")) {
-				//add configuration to list
-				conf = (new Configuration(s.clone(),st,"LeftArc",s.getStack().peekLast().getRel()));
-				
-				//add information to state: heads, leftmost, rightmost
-				s.getHeads()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-				if(s.getLeftMost()[s.getBuffer().peekFirst().getID()]==-1 
-						|| s.getLeftMost()[s.getBuffer().peekFirst().getID()]>s.getStack().peekLast().getID())
-					s.getLeftMost()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
-				if(s.getRightMost()[s.getBuffer().peekFirst().getID()]==-1 
-						|| s.getRightMost()[s.getBuffer().peekFirst().getID()]<s.getStack().peekLast().getID())
-					s.getRightMost()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
-				
-				//do leftarc
-				s.getStack().removeLast();
-				s.setJustShift(false);
-			}
-			else if(nNext==Configuration.getConfToInt("RightArc")) {
-				//add configuration to list
-				conf = (new Configuration(s.clone(),st,"RightArc",s.getBuffer().peekFirst().getRel()));
-				
-				//add information to state: heads, leftmost, rightmost
-				s.getHeads()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
-				if(s.getLeftMost()[s.getStack().peekLast().getID()]==-1 
-						|| s.getLeftMost()[s.getStack().peekLast().getID()]>s.getBuffer().peekFirst().getID())
-					s.getLeftMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-				if(s.getRightMost()[s.getStack().peekLast().getID()]==-1 
-						|| s.getRightMost()[s.getStack().peekLast().getID()]<s.getBuffer().peekFirst().getID())
-					s.getRightMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-				
-				//do rightarc
-				s.getStack().add(s.getBuffer().removeFirst());
-				s.setJustShift(false);
-			}
-			else if(nNext==Configuration.getConfToInt("Reduce")) {
-				//add configuration to list
-				conf = (new Configuration(s.clone(),st,"Reduce", null));
-				//do reduce
-				s.getStack().removeLast();
-				s.setJustShift(false);
-			}
-			else if(nNext==Configuration.getConfToInt("Unshift")) {
-				//add configuration to list
-				conf = (new Configuration(s.clone(),st,"Unshift", null));
-				//do unshift
-				s.getBuffer().add(s.getStack().removeLast());
-				s.setJustShift(false);
-			}
-			else {
-				//add configuration to list
-				conf = (new Configuration(s.clone(),st,"Shift", null));
-				//do shift
-				s.getStack().add(s.getBuffer().removeFirst());
-				s.setJustShift(true);
-			}
-			
-		}
-		
-		if(sentenceCount[0]%1000==0)
-			System.out.println("Iteration 1: "+sentenceCount[0]+" sentences processed");
+	public static void buildConfiguration(Sentence st, OnlinePerceptron model) {
+		buildConfiguration(st, model, 1);
 	}
 	
-	public static void buildConfiguration(Sentence st, DynamicPerceptron model, int iterationNumber) {
+	public static void buildConfiguration(Sentence st, OnlinePerceptron model, int iterationNumber) {
 		sentenceCount[iterationNumber-1]++;
 		
 		State s = new State(st);
@@ -197,7 +44,7 @@ public class ArcEagerOnlineDecoder {
 						break;
 					}
 				}
-				else if(p==Configuration.getConfToInt("Unshift")) {
+				else if(useUnshift && p==Configuration.getConfToInt("Unshift")) {
 					if(legalUnshift(s)) {
 						nPredict=p;
 						break;
@@ -209,26 +56,39 @@ public class ArcEagerOnlineDecoder {
 				}
 			}
 			
-			//correct assignment //TODO: need better cost function
+			//correct assignment
 			int[] nlCorrect = new int[nLabel];
 			Arrays.fill(nlCorrect, -1);
-			if(canLeftArc(s)) {
-				nlCorrect[Configuration.getConfToInt("LeftArc")]=Configuration.getConfToInt("LeftArc");
+			nlCorrect[Configuration.getConfToInt("LeftArc")]=costLeftArc(s);
+			nlCorrect[Configuration.getConfToInt("RightArc")]=costRightArc(s);
+			nlCorrect[Configuration.getConfToInt("Reduce")]=costReduce(s);
+			if(useUnshift) {
+				nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
 			}
-			if(canRightArc(s)) {
-				nlCorrect[Configuration.getConfToInt("RightArc")]=Configuration.getConfToInt("RightArc");
-			}
-			if(canReduce(s)) {
-				nlCorrect[Configuration.getConfToInt("Reduce")]=Configuration.getConfToInt("Reduce");
-			}
-			if(canUnshift(s)) {
-				nlCorrect[Configuration.getConfToInt("Unshift")]=Configuration.getConfToInt("Unshift");
-			}
-			if(canShift(s)){
-				nlCorrect[Configuration.getConfToInt("Shift")]=Configuration.getConfToInt("Shift");
+			nlCorrect[Configuration.getConfToInt("Shift")]=costShift(s);
+			
+			if(ApplicationControl.OnlineStaticPerceptron) {
+				nlCorrect[Configuration.getConfToInt("LeftArc")]=canLeftArc(s)?0:Integer.MAX_VALUE;
+				nlCorrect[Configuration.getConfToInt("RightArc")]=canRightArc(s)?0:Integer.MAX_VALUE;
+				nlCorrect[Configuration.getConfToInt("Reduce")]=canReduce(s)?0:Integer.MAX_VALUE;
+				if(useUnshift) {
+					nlCorrect[Configuration.getConfToInt("Unshift")]=canUnshift(s)?0:Integer.MAX_VALUE;
+				}
+				nlCorrect[Configuration.getConfToInt("Shift")]=canShift(s)?0:Integer.MAX_VALUE-1;
 			}
 			
 			//argmax of correct assignments
+			int argminCost = Integer.MAX_VALUE;
+			for(int cost : nlCorrect) {
+				if(cost<argminCost)
+					argminCost=cost;
+			}
+			for(int i=0;i<nlCorrect.length;i++) {
+				if(nlCorrect[i]==argminCost)
+					nlCorrect[i]=i;
+				else
+					nlCorrect[i]=-1;
+			}
 			for(int p : nlPredict) {
 				if(nlCorrect[p]!=-1) {
 					nCorrect=p;
@@ -236,7 +96,7 @@ public class ArcEagerOnlineDecoder {
 				}
 			}
 			if(nCorrect==-1)
-				nCorrect=Configuration.getConfToInt("Shift");
+				System.out.println("Cannot find correct transition!");
 			
 			//update()
 //			if(nCorrect != nPredict) {
@@ -279,7 +139,6 @@ public class ArcEagerOnlineDecoder {
 				
 				//do leftarc
 				s.getStack().removeLast();
-				s.setJustShift(false);
 			}
 			else if(nNext==Configuration.getConfToInt("RightArc")) {
 				//add configuration to list
@@ -296,28 +155,25 @@ public class ArcEagerOnlineDecoder {
 				
 				//do rightarc
 				s.getStack().add(s.getBuffer().removeFirst());
-				s.setJustShift(false);
 			}
 			else if(nNext==Configuration.getConfToInt("Reduce")) {
 				//add configuration to list
 				conf = (new Configuration(s.clone(),st,"Reduce", null));
 				//do reduce
 				s.getStack().removeLast();
-				s.setJustShift(false);
 			}
-			else if(nNext==Configuration.getConfToInt("Unshift")) {
+			else if(useUnshift && nNext==Configuration.getConfToInt("Unshift")) {
 				//add configuration to list
 				conf = (new Configuration(s.clone(),st,"Unshift", null));
 				//do unshift
+				s.setUnshift(s.getStack().peekLast().getID());
 				s.getBuffer().add(s.getStack().removeLast());
-				s.setJustShift(false);
 			}
 			else {
 				//add configuration to list
 				conf = (new Configuration(s.clone(),st,"Shift", null));
 				//do shift
 				s.getStack().add(s.getBuffer().removeFirst());
-				s.setJustShift(true);
 			}
 			
 		}
@@ -326,7 +182,7 @@ public class ArcEagerOnlineDecoder {
 			System.out.println("Iteration "+iterationNumber+": "+sentenceCount[iterationNumber-1]+" sentences processed");
 	}
 	
-	public static void doParsing(DynamicPerceptron model, Sentence st) {
+	public static void doParsing(OnlinePerceptron model, Sentence st) {
 		//DEBUG: logging dead loop
 //		int transitioncount=0;
 //		ArrayList<String> transitionhistory = new ArrayList<String>();
@@ -356,7 +212,7 @@ public class ArcEagerOnlineDecoder {
 						break;
 					}
 				}
-				else if(b==Configuration.getConfToInt("Unshift")) {
+				else if(useUnshift && b==Configuration.getConfToInt("Unshift")) {
 					if(legalUnshift(s)) {
 						bestTrans=b;
 						break;
@@ -373,7 +229,6 @@ public class ArcEagerOnlineDecoder {
 				if(!s.getBuffer().isEmpty()) {
 					//do shift
 					s.getStack().add(s.getBuffer().removeFirst());
-					s.setJustShift(true);
 				}
 				else {
 					System.out.println("Shift Fail!");
@@ -395,7 +250,6 @@ public class ArcEagerOnlineDecoder {
 							st.getWdList().get(s.getStack().peekLast().getID()).setHead(s.getBuffer().peekFirst().getID());
 							//do leftarc
 							s.getStack().removeLast();
-							s.setJustShift(false);
 					}
 					else {
 						System.out.println("LeftArc: Root");
@@ -421,7 +275,6 @@ public class ArcEagerOnlineDecoder {
 						st.getWdList().get(s.getBuffer().peekFirst().getID()).setHead(s.getStack().peekLast().getID());
 						//do rightarc
 						s.getStack().add(s.getBuffer().removeFirst());
-						s.setJustShift(false);
 					}
 				}
 				else {
@@ -432,7 +285,6 @@ public class ArcEagerOnlineDecoder {
 				if(!s.getStack().isEmpty()) {
 					//do reduce
 					s.getStack().removeLast();
-					s.setJustShift(false);
 				}
 				else {
 					System.out.println("Reduce Fail! : do Shift");
@@ -440,25 +292,23 @@ public class ArcEagerOnlineDecoder {
 					if(!s.getBuffer().isEmpty()) {
 						//if fail, do shift
 						s.getStack().add(s.getBuffer().removeFirst());
-						s.setJustShift(true);
 					}
 					else {
 						System.out.println("Reduce-Shift Fail!");
 					}
 				}
 			}
-			else if(bestTrans==4) {  //unshift
+			else if(useUnshift && bestTrans==4) {  //unshift
 				if(!s.getStack().isEmpty()) {
-					if(!s.getJustShift()) {
+					if(s.getUnshift(s.getStack().peekLast().getID())) {
 						//do unshift
+						s.setUnshift(s.getStack().peekLast().getID());
 						s.getBuffer().add(s.getStack().removeLast());
-						s.setJustShift(false);
 					}
 					else {
 						System.out.println("Unshift Fail! : do Reduce");
 						//if fail, do reduce
 						s.getStack().removeLast();
-						s.setJustShift(false);
 					}
 				}
 				else {
@@ -467,7 +317,6 @@ public class ArcEagerOnlineDecoder {
 					if(!s.getBuffer().isEmpty()) {
 						//if fail, do shift
 						s.getStack().add(s.getBuffer().removeFirst());
-						s.setJustShift(true);
 					}
 					else {
 						System.out.println("Unshift-Reduce-Shift Fail!");
@@ -493,100 +342,90 @@ public class ArcEagerOnlineDecoder {
 		}
 		
 		//try to solve no-head problem
-//		while(s.getStack().size()>1) {
-//			if(s.getStack().peekLast().getHead()==-1 && !s.getStack().peekLast().getPos().equals("ROOT")) {
-//				s.getBuffer().add(s.getStack().removeLast());
-//				System.out.println("Final: unShift -> RightArc (-> Reduce)");
-//				//add information to state: heads, leftmost, rightmost
-//				s.getHeads()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
-//				if(s.getLeftMost()[s.getStack().peekLast().getID()]==-1 
-//						|| s.getLeftMost()[s.getStack().peekLast().getID()]>s.getBuffer().peekFirst().getID())
-//					s.getLeftMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-//				if(s.getRightMost()[s.getStack().peekLast().getID()]==-1 
-//						|| s.getRightMost()[s.getStack().peekLast().getID()]<s.getBuffer().peekFirst().getID())
-//					s.getRightMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-//			
-//				//write arc to sentence
-//				st.getWdList().get(s.getBuffer().peekFirst().getID()).setHead(s.getStack().peekLast().getID());
-//				//do rightarc
-//				s.getStack().add(s.getBuffer().removeFirst());
-//			}
-//			else if(s.getStack().peekLast().getHead()!=-1) {
-//				s.getStack().removeLast();
-//			}
-//			else {
-//				break;
-//			}
-//		}
-		
-		//new: try to solve no-head problem with prediction
-		s.setJustShift(false);
-//		int finalcount=0;
-		while(s.getStack().size()>1) {
-			
-//			finalcount++;
-//			if(finalcount>10000)
-//				break;
-			
-			int[] bestTransList = model.findBestList(s.buildFeature(st));
-			int bestTrans = Configuration.getConfToInt("Reduce");
-			for(int b : bestTransList) {
-				if(b==Configuration.getConfToInt("LeftArc")) {
-					if(legalLeftArc(s)) {
-						bestTrans=b;
-						break;
-					}
-				}
-				else if(b==Configuration.getConfToInt("RightArc")) {
-					if(legalRightArc(s)) {
-						bestTrans=b;
-						break;
-					}
-				}
-				else if(b==Configuration.getConfToInt("Reduce")) {
-					if(legalFinalReduce(s)) {
-						bestTrans=b;
-						break;
-					}
-				}
-				else if(b==Configuration.getConfToInt("Unshift")) {
-					if(legalUnshift(s)) {
-						bestTrans=b;
-						break;
-					}
-				}
-				else if(b==Configuration.getConfToInt("Shift")) {
-					if(legalShift(s)) {
-						bestTrans=b;
-						break;
-					}
-				}
-			}
-			
-//			System.out.println("Final Steps: "+Configuration.getConfToString(bestTrans));
-			
-			if(bestTrans==0) {  //shift
-				//do shift
-				s.getStack().add(s.getBuffer().removeFirst());
-				s.setJustShift(true);
-			}
-			else if(bestTrans==1) {  //leftArc
-				//add information to state: heads, leftmost, rightmost
-				s.getHeads()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-				if(s.getLeftMost()[s.getBuffer().peekFirst().getID()]==-1 
-							|| s.getLeftMost()[s.getBuffer().peekFirst().getID()]>s.getStack().peekLast().getID())
-					s.getLeftMost()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
-				if(s.getRightMost()[s.getBuffer().peekFirst().getID()]==-1 
-						|| s.getRightMost()[s.getBuffer().peekFirst().getID()]<s.getStack().peekLast().getID())
-					s.getRightMost()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
+		//0 - "Ignore", 1 - "All Root", 2 - "All RightArc", 3 - "All LeftArc", 4 - "By Oracle"
+		if(ApplicationControl.AfterEndSolution==0) {  //Ignore
+			//nothing to do
+		}
+		else if(ApplicationControl.AfterEndSolution==1) {  //All Root
+			while(s.getStack().size()>1) {
+				if(s.getStack().peekLast().getHead()==-1 && !s.getStack().peekLast().getPos().equals("ROOT")) {
+					//add information to state: heads, leftmost, rightmost
+					s.getHeads()[s.getStack().peekLast().getID()]=0;
+					if(s.getLeftMost()[0]==-1 
+							|| s.getLeftMost()[0]>s.getStack().peekLast().getID())
+						s.getLeftMost()[0]=s.getStack().peekLast().getID();
+					if(s.getRightMost()[0]==-1 
+							|| s.getRightMost()[0]<s.getStack().peekLast().getID())
+						s.getRightMost()[0]=s.getStack().peekLast().getID();
 				
-				//write arc to sentence
-				st.getWdList().get(s.getStack().peekLast().getID()).setHead(s.getBuffer().peekFirst().getID());
-				//do leftarc
-				s.getStack().removeLast();
-				s.setJustShift(false);
+					//write arc to sentence
+					st.getWdList().get(s.getStack().peekLast().getID()).setHead(0);
+				}
+				else if(s.getStack().peekLast().getHead()!=-1) {
+					s.getStack().removeLast();
+				}
+				else {
+					break;
+				}
 			}
-			else if(bestTrans==2) {  //rightArc
+		}
+		else if(ApplicationControl.AfterEndSolution==2) {  //All RightArc
+			while(s.getStack().size()>1) {
+				if(s.getStack().peekLast().getHead()==-1 && !s.getStack().peekLast().getPos().equals("ROOT")) {
+					s.getBuffer().add(s.getStack().removeLast());
+					System.out.println("Final: unShift -> RightArc (-> Reduce)");
+					//add information to state: heads, leftmost, rightmost
+					s.getHeads()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
+					if(s.getLeftMost()[s.getStack().peekLast().getID()]==-1 
+							|| s.getLeftMost()[s.getStack().peekLast().getID()]>s.getBuffer().peekFirst().getID())
+						s.getLeftMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
+					if(s.getRightMost()[s.getStack().peekLast().getID()]==-1 
+							|| s.getRightMost()[s.getStack().peekLast().getID()]<s.getBuffer().peekFirst().getID())
+						s.getRightMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
+				
+					//write arc to sentence
+					st.getWdList().get(s.getBuffer().peekFirst().getID()).setHead(s.getStack().peekLast().getID());
+					//do rightarc
+					s.getStack().add(s.getBuffer().removeFirst());
+				}
+				else if(s.getStack().peekLast().getHead()!=-1) {
+					s.getStack().removeLast();
+				}
+				else {
+					break;
+				}
+			}
+		}
+		else if(ApplicationControl.AfterEndSolution==3) {  //All LeftArc
+			if(s.getStack().size()>1) {
+				s.getBuffer().add(s.getStack().removeLast());
+			}
+			while(s.getStack().size()>1) {
+				if(s.getStack().peekLast().getHead()==-1 && !s.getStack().peekLast().getPos().equals("ROOT")) {
+					s.getBuffer().add(s.getStack().removeLast());
+					System.out.println("Final: unShift -> LeftArc");
+					//add information to state: heads, leftmost, rightmost
+					s.getHeads()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
+					if(s.getLeftMost()[s.getBuffer().peekFirst().getID()]==-1 
+								|| s.getLeftMost()[s.getBuffer().peekFirst().getID()]>s.getStack().peekLast().getID())
+						s.getLeftMost()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
+					if(s.getRightMost()[s.getBuffer().peekFirst().getID()]==-1 
+							|| s.getRightMost()[s.getBuffer().peekFirst().getID()]<s.getStack().peekLast().getID())
+						s.getRightMost()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
+					
+					//write arc to sentence
+					st.getWdList().get(s.getStack().peekLast().getID()).setHead(s.getBuffer().peekFirst().getID());
+					//do leftarc
+					s.getStack().removeLast();
+				}
+				else if(s.getStack().peekLast().getHead()!=-1) {
+					s.getStack().removeLast();
+				}
+				else {
+					break;
+				}
+			}
+			if(!s.getBuffer().isEmpty() && !s.getStack().isEmpty()) {
 				//add information to state: heads, leftmost, rightmost
 				s.getHeads()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
 				if(s.getLeftMost()[s.getStack().peekLast().getID()]==-1 
@@ -600,22 +439,107 @@ public class ArcEagerOnlineDecoder {
 				st.getWdList().get(s.getBuffer().peekFirst().getID()).setHead(s.getStack().peekLast().getID());
 				//do rightarc
 				s.getStack().add(s.getBuffer().removeFirst());
-				s.setJustShift(false);
-			}
-			else if(bestTrans==3) {  //reduce
 				//do reduce
 				s.getStack().removeLast();
-				s.setJustShift(false);
-			}
-			else if(bestTrans==4) {  //unshift
-				//do unshift
-				s.getBuffer().add(s.getStack().removeLast());
-				s.setJustShift(false);
-			}
-			else {
-				System.out.println("Error Transition with: stack-"+s.getStack().peekLast().getForm()+" buffer-"+s.getBuffer().peekFirst().getForm());
 			}
 		}
+		else if(ApplicationControl.AfterEndSolution==4) {  //By Oracle
+			//new: try to solve no-head problem with prediction
+//			int finalcount=0;
+			while(s.getStack().size()>1) {
+				
+//				finalcount++;
+//				if(finalcount>10000)
+//					break;
+				
+				int[] bestTransList = model.findBestList(s.buildFeature(st));
+				int bestTrans = Configuration.getConfToInt("Reduce");
+				for(int b : bestTransList) {
+					if(b==Configuration.getConfToInt("LeftArc")) {
+						if(legalLeftArc(s)) {
+							bestTrans=b;
+							break;
+						}
+					}
+					else if(b==Configuration.getConfToInt("RightArc")) {
+						if(legalRightArc(s)) {
+							bestTrans=b;
+							break;
+						}
+					}
+					else if(b==Configuration.getConfToInt("Reduce")) {
+						if(legalFinalReduce(s)) {
+							bestTrans=b;
+							break;
+						}
+					}
+					else if(useUnshift && b==Configuration.getConfToInt("Unshift")) {
+						if(legalFinalUnshift(s)) {
+							bestTrans=b;
+							break;
+						}
+					}
+//					else if(b==Configuration.getConfToInt("Shift")) {
+//						if(legalShift(s)) {
+//							bestTrans=b;
+//							break;
+//						}
+//					}
+				}
+				
+//				System.out.println("Final Steps: "+Configuration.getConfToString(bestTrans));
+				
+				if(bestTrans==0) {  //shift
+					//do shift
+					s.getStack().add(s.getBuffer().removeFirst());
+				}
+				else if(bestTrans==1) {  //leftArc
+					//add information to state: heads, leftmost, rightmost
+					s.getHeads()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
+					if(s.getLeftMost()[s.getBuffer().peekFirst().getID()]==-1 
+								|| s.getLeftMost()[s.getBuffer().peekFirst().getID()]>s.getStack().peekLast().getID())
+						s.getLeftMost()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
+					if(s.getRightMost()[s.getBuffer().peekFirst().getID()]==-1 
+							|| s.getRightMost()[s.getBuffer().peekFirst().getID()]<s.getStack().peekLast().getID())
+						s.getRightMost()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
+					
+					//write arc to sentence
+					st.getWdList().get(s.getStack().peekLast().getID()).setHead(s.getBuffer().peekFirst().getID());
+					//do leftarc
+					s.getStack().removeLast();
+				}
+				else if(bestTrans==2) {  //rightArc
+					//add information to state: heads, leftmost, rightmost
+					s.getHeads()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
+					if(s.getLeftMost()[s.getStack().peekLast().getID()]==-1 
+							|| s.getLeftMost()[s.getStack().peekLast().getID()]>s.getBuffer().peekFirst().getID())
+						s.getLeftMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
+					if(s.getRightMost()[s.getStack().peekLast().getID()]==-1 
+							|| s.getRightMost()[s.getStack().peekLast().getID()]<s.getBuffer().peekFirst().getID())
+						s.getRightMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
+				
+					//write arc to sentence
+					st.getWdList().get(s.getBuffer().peekFirst().getID()).setHead(s.getStack().peekLast().getID());
+					//do rightarc
+					s.getStack().add(s.getBuffer().removeFirst());
+				}
+				else if(bestTrans==3) {  //reduce
+					//do reduce
+					s.getStack().removeLast();
+				}
+				else if(useUnshift && bestTrans==4) {  //unshift
+					//do unshift
+					s.getBuffer().add(s.getStack().removeLast());
+				}
+				else {
+					System.out.println("Error Transition with: stack-"+s.getStack().peekLast().getForm()+" buffer-"+s.getBuffer().peekFirst().getForm());
+				}
+			}
+		}
+		else {  //Unknown
+			System.out.println("Unknown After-End Solution!");
+		}
+		
 	}
 	
 	
@@ -625,7 +549,7 @@ public class ArcEagerOnlineDecoder {
 		}
 	}
 	
-
+	//zero-cost check for each transition
 	private static boolean canReduce(State s) {
 		if(s.getStack().isEmpty())  //nothing to reduce
 			return false;
@@ -633,19 +557,23 @@ public class ArcEagerOnlineDecoder {
 			int count=0;
 			boolean trueHeadInBuffer = false;
 			for(Word w : s.getStack()) {
-				if(w.getHead()==s.getStack().peekLast().getID())
-					count++;
+				if(w.getHead()==s.getStack().peekLast().getID()) {
+					if(s.getHeads()[w.getID()]==-1)
+						count++;
+				}
 			}
 			for(Word w : s.getBuffer()) {
-				if(w.getHead()==s.getStack().peekLast().getID())
-					count++;
+				if(w.getHead()==s.getStack().peekLast().getID()) {
+					if(s.getHeads()[w.getID()]==-1)
+						count++;
+				}
 				if(s.getStack().peekLast().getHead()==w.getID())
 					trueHeadInBuffer=true;
 			}
 			if(count>0)  //not having all children
 				return false;
 			else { //having all children
-				if(trueHeadInBuffer)
+				if(useUnshift && trueHeadInBuffer)
 					return false;
 				else
 					return true;
@@ -672,7 +600,7 @@ public class ArcEagerOnlineDecoder {
 				if(s.getStack().peekLast().getHead()==w.getID())
 					tureHeadInStack=true;
 			}
-			if(tureHeadInStack)
+			if(useUnshift && tureHeadInStack)
 				return false;
 			
 			//real head of stack not in buffer, no real child of stack in buffer, optimal
@@ -723,11 +651,13 @@ public class ArcEagerOnlineDecoder {
 	}
 	
 	private static boolean canUnshift(State s) {
+		if(!useUnshift)
+			return false;
 		if(s.getStack().isEmpty())  //nothing to unshift
 			return false;
 		if(s.getHeads()[s.getStack().peekLast().getID()]!=-1)  //top of stack has head
 			return false;
-		if(!s.getJustShift())
+		if(s.getUnshift(s.getStack().peekLast().getID()))
 			return true;
 		return false;
 	}
@@ -757,6 +687,131 @@ public class ArcEagerOnlineDecoder {
 			return false;
 	}
 	
+	//cost function for each transition
+		private static int costReduce(State s) {
+			if(s.getStack().isEmpty())  //nothing to reduce
+				return Integer.MAX_VALUE;
+			if(s.getHeads()[s.getStack().peekLast().getID()]==-1)  //has head
+				return Integer.MAX_VALUE;
+			else {
+				int cost = 0;
+				for(Word w : s.getStack()) {
+					if(w.getHead()==s.getStack().peekLast().getID()) {
+						if(s.getHeads()[w.getID()]==-1)
+							cost++;
+					}
+				}
+				for(Word w : s.getBuffer()) {
+					if(w.getHead()==s.getStack().peekLast().getID()) {
+						if(s.getHeads()[w.getID()]==-1)
+							cost++;
+					}
+					if(useUnshift) {
+						if(s.getStack().peekLast().getHead()==w.getID())
+							cost++;
+					}
+				}
+				
+				return cost;
+			}
+		}
+
+		private static int costLeftArc(State s) {
+			if(s.getBuffer().isEmpty() || s.getStack().isEmpty())  //nothing to make arc
+				return Integer.MAX_VALUE;
+			if(s.getStack().peekLast().getPos().equals("ROOT"))  //stack not root
+				return Integer.MAX_VALUE;
+			if(s.getStack().peekLast().getHead()==s.getBuffer().peekFirst().getID()) {  //found the arc
+				return 0;
+			}
+			if(s.getHeads()[s.getStack().peekLast().getID()]!=-1)  //top of stack has head
+				return Integer.MAX_VALUE;
+			else {  //has no head
+				int cost = 0;
+				//true head of stack is in stack, non-optimal
+				if(useUnshift) {
+					boolean tureHeadInStack=false;
+					for(Word w : s.getStack()) {
+						if(s.getStack().peekLast().getHead()==w.getID())
+							tureHeadInStack=true;
+					}
+					if(tureHeadInStack)
+						return Integer.MAX_VALUE;
+				}
+				
+				//real head of stack not in buffer, no real child of stack in buffer, optimal
+				for(Word w : s.getBuffer()) {
+					if(s.getStack().peekLast().getHead()==w.getID())
+						cost++;
+					if(w.getHead()==s.getStack().peekLast().getID())
+						cost++;
+				}
+				
+				return cost;
+			}
+		}
+		
+		private static int costRightArc(State s) {
+			if(s.getBuffer().isEmpty() || s.getStack().isEmpty())  //nothing to makr arc
+				return Integer.MAX_VALUE;
+			if(s.getHeads()[s.getBuffer().peekFirst().getID()]!=-1)  //front of buffer has head
+				return Integer.MAX_VALUE;
+			if(s.getBuffer().peekFirst().getHead()==s.getStack().peekLast().getID()) {  //found the arc
+				return 0;
+			}
+			else {
+				//real head of buffer not in stack/buffer, no real child of buffer in stack, optimal
+				int cost = 0;
+				for(Word w : s.getStack()) {
+					if(s.getBuffer().peekFirst().getHead()==w.getID())
+						cost++;
+					if(w.getHead()==s.getBuffer().peekFirst().getID())
+						cost++;
+				}
+				for(Word w : s.getBuffer()) {
+					if(s.getBuffer().peekFirst().getHead()==w.getID())
+						cost++;
+				}
+				
+				return cost;
+			}
+		}
+		
+		private static int costUnshift(State s) {
+			if(!useUnshift)
+				return Integer.MAX_VALUE;
+			if(s.getStack().isEmpty())  //nothing to unshift
+				return Integer.MAX_VALUE;
+			if(s.getHeads()[s.getStack().peekLast().getID()]!=-1)  //top of stack has head
+				return Integer.MAX_VALUE;
+			if(s.getUnshift(s.getStack().peekLast().getID()))
+				return 0;
+			return Integer.MAX_VALUE;
+		}
+		
+		private static int costShift(State s) {
+			if(s.getBuffer().isEmpty())  //nothing to shift
+				return Integer.MAX_VALUE;
+			
+			//no head of buffer in stack, no headless child of buffer in stack, optimal
+			int cost = 0;
+			if(s.getBuffer().peekFirst().getHead()!=-1) {
+				for(Word w : s.getStack()) {
+					if(s.getBuffer().peekFirst().getHead()==w.getID())
+						cost++;
+				}
+			}
+			for(Word w : s.getBuffer()) {
+				if(w.getHead()==s.getBuffer().peekFirst().getID()) {
+					if(s.getHeads()[w.getID()]==-1)
+						cost++;
+				}
+			}
+			
+			return cost;
+		}
+	
+	//legal check for each transitions
 	private static boolean legalLeftArc(State s) {
 		if(s.getBuffer().isEmpty() || s.getStack().isEmpty())
 			return false;
@@ -800,9 +855,19 @@ public class ArcEagerOnlineDecoder {
 	}
 	
 	private static boolean legalUnshift(State s) {
+		if(!useUnshift)
+			return false;
 		if(s.getStack().isEmpty())
 			return false;
-		if(s.getJustShift())
+		if(!s.getUnshift(s.getStack().peekLast().getID()))
+			return false;
+		return true;
+	}
+	
+	private static boolean legalFinalUnshift(State s) {
+		if(!useUnshift)
+			return false;
+		if(s.getStack().isEmpty())
 			return false;
 		return true;
 	}
@@ -811,6 +876,16 @@ public class ArcEagerOnlineDecoder {
 		if(s.getBuffer().isEmpty())
 			return false;
 		return true;
+	}
+	
+	public static void enableUnshift() {
+		useUnshift=true;
+		nLabel=5;
+	}
+	
+	public static void disableUnshift() {
+		useUnshift=false;
+		nLabel=4;
 	}
 	
 	public static void main(String[] args) {
@@ -838,4 +913,6 @@ public class ArcEagerOnlineDecoder {
 			co++;
 		}
 	}
+
+	
 }
