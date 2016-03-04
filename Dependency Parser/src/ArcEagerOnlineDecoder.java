@@ -67,15 +67,15 @@ public class ArcEagerOnlineDecoder {
 			}
 			nlCorrect[Configuration.getConfToInt("Shift")]=costShift(s);
 			
-			if(ApplicationControl.OnlineStaticPerceptron) {
-				nlCorrect[Configuration.getConfToInt("LeftArc")]=canLeftArc(s)?0:Integer.MAX_VALUE;
-				nlCorrect[Configuration.getConfToInt("RightArc")]=canRightArc(s)?0:Integer.MAX_VALUE;
-				nlCorrect[Configuration.getConfToInt("Reduce")]=canReduce(s)?0:Integer.MAX_VALUE;
-				if(useUnshift) {
-					nlCorrect[Configuration.getConfToInt("Unshift")]=canUnshift(s)?0:Integer.MAX_VALUE;
-				}
-				nlCorrect[Configuration.getConfToInt("Shift")]=canShift(s)?0:Integer.MAX_VALUE-1;
-			}
+//			if(ApplicationControl.OnlineStaticPerceptron) {
+//				nlCorrect[Configuration.getConfToInt("LeftArc")]=canLeftArc(s)?0:Integer.MAX_VALUE;
+//				nlCorrect[Configuration.getConfToInt("RightArc")]=canRightArc(s)?0:Integer.MAX_VALUE;
+//				nlCorrect[Configuration.getConfToInt("Reduce")]=canReduce(s)?0:Integer.MAX_VALUE;
+//				if(useUnshift) {
+//					nlCorrect[Configuration.getConfToInt("Unshift")]=canUnshift(s)?0:Integer.MAX_VALUE;
+//				}
+//				nlCorrect[Configuration.getConfToInt("Shift")]=canShift(s)?0:Integer.MAX_VALUE;
+//			}
 			
 			//argmax of correct assignments
 			int argminCost = Integer.MAX_VALUE;
@@ -84,7 +84,7 @@ public class ArcEagerOnlineDecoder {
 					argminCost=cost;
 			}
 			for(int i=0;i<nlCorrect.length;i++) {
-				if(nlCorrect[i]==argminCost)
+				if(nlCorrect[i]==argminCost && argminCost!=Integer.MAX_VALUE)
 					nlCorrect[i]=i;
 				else
 					nlCorrect[i]=-1;
@@ -95,8 +95,11 @@ public class ArcEagerOnlineDecoder {
 					break;
 				}
 			}
-			if(nCorrect==-1)
-				System.out.println("Cannot find correct transition!");
+			if(nCorrect==-1 || (ApplicationControl.OnlineStaticPerceptron && argminCost!=0)) {
+				System.out.println("Cannot find correct transition! : do Shift!");
+				nlCorrect[Configuration.getConfToInt("Shift")]=Configuration.getConfToInt("Shift");
+				nCorrect=Configuration.getConfToInt("Shift");
+			}
 			
 			//update()
 //			if(nCorrect != nPredict) {
@@ -675,7 +678,7 @@ public class ArcEagerOnlineDecoder {
 					headInStack=true;
 			}
 		}
-		for(Word w : s.getBuffer()) {
+		for(Word w : s.getStack()) {
 			if(w.getHead()==s.getBuffer().peekFirst().getID()) {
 				if(s.getHeads()[w.getID()]==-1)
 					childInStack=true;
@@ -721,22 +724,19 @@ public class ArcEagerOnlineDecoder {
 				return Integer.MAX_VALUE;
 			if(s.getStack().peekLast().getPos().equals("ROOT"))  //stack not root
 				return Integer.MAX_VALUE;
+			if(s.getHeads()[s.getStack().peekLast().getID()]!=-1)  //top of stack has head
+				return Integer.MAX_VALUE;
 			if(s.getStack().peekLast().getHead()==s.getBuffer().peekFirst().getID()) {  //found the arc
 				return 0;
 			}
-			if(s.getHeads()[s.getStack().peekLast().getID()]!=-1)  //top of stack has head
-				return Integer.MAX_VALUE;
-			else {  //has no head
+			else {  //top of stack has no head
 				int cost = 0;
 				//true head of stack is in stack, non-optimal
 				if(useUnshift) {
-					boolean tureHeadInStack=false;
 					for(Word w : s.getStack()) {
 						if(s.getStack().peekLast().getHead()==w.getID())
-							tureHeadInStack=true;
+							cost++;
 					}
-					if(tureHeadInStack)
-						return Integer.MAX_VALUE;
 				}
 				
 				//real head of stack not in buffer, no real child of stack in buffer, optimal
@@ -753,6 +753,8 @@ public class ArcEagerOnlineDecoder {
 		
 		private static int costRightArc(State s) {
 			if(s.getBuffer().isEmpty() || s.getStack().isEmpty())  //nothing to makr arc
+				return Integer.MAX_VALUE;
+			if(s.getBuffer().peekFirst().getPos().equals("ROOT"))  //buffer not root
 				return Integer.MAX_VALUE;
 			if(s.getHeads()[s.getBuffer().peekFirst().getID()]!=-1)  //front of buffer has head
 				return Integer.MAX_VALUE;
@@ -801,7 +803,7 @@ public class ArcEagerOnlineDecoder {
 						cost++;
 				}
 			}
-			for(Word w : s.getBuffer()) {
+			for(Word w : s.getStack()) {
 				if(w.getHead()==s.getBuffer().peekFirst().getID()) {
 					if(s.getHeads()[w.getID()]==-1)
 						cost++;
