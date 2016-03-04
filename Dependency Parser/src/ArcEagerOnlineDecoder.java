@@ -195,7 +195,7 @@ public class ArcEagerOnlineDecoder {
 		while(!(s.getBuffer().isEmpty())) {
 			//find best legal transition
 			int[] bestTransList = model.findBestList(s.buildFeature(st));
-			int bestTrans = Configuration.getConfToInt("Shift");
+			int bestTrans = -1;
 			for(int b : bestTransList) {
 				if(b==Configuration.getConfToInt("LeftArc")) {
 					if(legalLeftArc(s)) {
@@ -222,8 +222,10 @@ public class ArcEagerOnlineDecoder {
 					}
 				}
 				else if(b==Configuration.getConfToInt("Shift")) {
-					bestTrans=b;
-					break;
+					if(legalShift(s)) {
+						bestTrans=b;
+						break;
+					}
 				}
 			}
 			
@@ -786,8 +788,10 @@ public class ArcEagerOnlineDecoder {
 				return Integer.MAX_VALUE;
 			if(s.getHeads()[s.getStack().peekLast().getID()]!=-1)  //top of stack has head
 				return Integer.MAX_VALUE;
-			if(s.getUnshift(s.getStack().peekLast().getID()))
-				return 0;
+			if(s.getUnshift(s.getStack().peekLast().getID())) {
+				return costReduce(s);
+//				return 0;
+			}
 			return Integer.MAX_VALUE;
 		}
 		
