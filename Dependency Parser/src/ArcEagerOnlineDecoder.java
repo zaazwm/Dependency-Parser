@@ -353,7 +353,7 @@ public class ArcEagerOnlineDecoder {
 		}
 		else if(ApplicationControl.AfterEndSolution==1) {  //All Root
 			while(s.getStack().size()>1) {
-				if(s.getStack().peekLast().getHead()==-1 && !s.getStack().peekLast().getPos().equals("ROOT")) {
+				if(s.getHeads()[s.getStack().peekLast().getID()]==-1 && !s.getStack().peekLast().getPos().equals("ROOT")) {
 					//add information to state: heads, leftmost, rightmost
 					s.getHeads()[s.getStack().peekLast().getID()]=0;
 					if(s.getLeftMost()[0]==-1 
@@ -376,7 +376,7 @@ public class ArcEagerOnlineDecoder {
 		}
 		else if(ApplicationControl.AfterEndSolution==2) {  //All RightArc
 			while(s.getStack().size()>1) {
-				if(s.getStack().peekLast().getHead()==-1 && !s.getStack().peekLast().getPos().equals("ROOT")) {
+				if(s.getHeads()[s.getStack().peekLast().getID()]==-1 && !s.getStack().peekLast().getPos().equals("ROOT")) {
 					s.getBuffer().add(s.getStack().removeLast());
 					System.out.println("Final: unShift -> RightArc (-> Reduce)");
 					//add information to state: heads, leftmost, rightmost
@@ -406,8 +406,7 @@ public class ArcEagerOnlineDecoder {
 				s.getBuffer().add(s.getStack().removeLast());
 			}
 			while(s.getStack().size()>1) {
-				if(s.getStack().peekLast().getHead()==-1 && !s.getStack().peekLast().getPos().equals("ROOT")) {
-					s.getBuffer().add(s.getStack().removeLast());
+				if(s.getHeads()[s.getStack().peekLast().getID()]==-1 && !s.getStack().peekLast().getPos().equals("ROOT")) {
 					System.out.println("Final: unShift -> LeftArc");
 					//add information to state: heads, leftmost, rightmost
 					s.getHeads()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
@@ -421,31 +420,35 @@ public class ArcEagerOnlineDecoder {
 					//write arc to sentence
 					st.getWdList().get(s.getStack().peekLast().getID()).setHead(s.getBuffer().peekFirst().getID());
 					//do leftarc
-					s.getStack().removeLast();
+					s.getBuffer().removeFirst();
+					s.getBuffer().add(s.getStack().removeLast());
 				}
 				else if(s.getStack().peekLast().getHead()!=-1) {
-					s.getStack().removeLast();
+					s.getBuffer().removeFirst();
+					s.getBuffer().add(s.getStack().removeLast());
 				}
 				else {
 					break;
 				}
 			}
 			if(!s.getBuffer().isEmpty() && !s.getStack().isEmpty()) {
-				//add information to state: heads, leftmost, rightmost
-				s.getHeads()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
-				if(s.getLeftMost()[s.getStack().peekLast().getID()]==-1 
-						|| s.getLeftMost()[s.getStack().peekLast().getID()]>s.getBuffer().peekFirst().getID())
-					s.getLeftMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-				if(s.getRightMost()[s.getStack().peekLast().getID()]==-1 
-						|| s.getRightMost()[s.getStack().peekLast().getID()]<s.getBuffer().peekFirst().getID())
-					s.getRightMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-			
-				//write arc to sentence
-				st.getWdList().get(s.getBuffer().peekFirst().getID()).setHead(s.getStack().peekLast().getID());
-				//do rightarc
-				s.getStack().add(s.getBuffer().removeFirst());
-				//do reduce
-				s.getStack().removeLast();
+				if(s.getHeads()[s.getBuffer().peekFirst().getID()]==-1) {
+					//add information to state: heads, leftmost, rightmost
+					s.getHeads()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
+					if(s.getLeftMost()[s.getStack().peekLast().getID()]==-1 
+							|| s.getLeftMost()[s.getStack().peekLast().getID()]>s.getBuffer().peekFirst().getID())
+						s.getLeftMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
+					if(s.getRightMost()[s.getStack().peekLast().getID()]==-1 
+							|| s.getRightMost()[s.getStack().peekLast().getID()]<s.getBuffer().peekFirst().getID())
+						s.getRightMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
+				
+					//write arc to sentence
+					st.getWdList().get(s.getBuffer().peekFirst().getID()).setHead(s.getStack().peekLast().getID());
+					//do rightarc
+					s.getStack().add(s.getBuffer().removeFirst());
+					//do reduce
+					s.getStack().removeLast();
+				}
 			}
 		}
 		else if(ApplicationControl.AfterEndSolution==4) {  //By Oracle
