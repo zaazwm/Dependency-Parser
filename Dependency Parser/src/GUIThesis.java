@@ -5,6 +5,7 @@ import java.awt.FlowLayout;
 import java.io.IOException;
 
 import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -47,17 +48,15 @@ public class GUIThesis implements GUI {
 		JPanel panel = new JPanel(new FlowLayout());
 		panel.setSize(mainwindow.getSize());
 		
-		FileDialog dlg = new FileDialog(mainwindow, "Open a File");
+		FileDialog dlg = new FileDialog(mainwindow, "Open a Data File");
 		filebtn = new Button("Open File");
 		panel.add(filebtn);
 		filebtn.addActionListener(new FileButtonActionListener(GUIThesis.this, dlg));
 		
-		System.setProperty("apple.awt.fileDialogForDirectories", "true");
-		FileDialog dlg2 = new FileDialog(mainwindow, "Choose a Folder");
+		JFileChooser dlg2 = new JFileChooser();
 		filebtn2 = new Button("Open Model");
 		panel.add(filebtn2);
-		filebtn2.addActionListener(new ModelButtonActionListener(GUIThesis.this, dlg2));
-		System.setProperty("apple.awt.fileDialogForDirectories", "false");
+		filebtn2.addActionListener(new ModelFileButtonActionListener(GUIThesis.this, dlg2));
 		
 		decoder = new JComboBox<String>(decoders);
 		training = new JComboBox<String>(trainings);
@@ -133,7 +132,7 @@ public class GUIThesis implements GUI {
 		
 		
 		try {
-			ApplicationControl.run(filepath, modelpath);
+			ApplicationControl.run(filepath, modelpath, true);
 		} catch (ClassNotFoundException | IOException | InvalidInputDataException e) {
 			e.printStackTrace();
 		}

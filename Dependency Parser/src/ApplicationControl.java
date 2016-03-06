@@ -237,6 +237,20 @@ public class ApplicationControl {
 		}
 	}
 	
+	public static void run(String dataPath, String modelPath, boolean flag) throws IOException, InvalidInputDataException, ClassNotFoundException {
+		//run the program, for extended usage
+		if(!testMark) {
+			TrainModel(dataPath, modelPath, true);
+			System.out.println("Training Finished!");
+		}
+		else {
+			TestModel(dataPath, modelPath, true);
+			System.out.println("Test Finished!");
+			if(devMark)
+				CompareResult(dataPath);
+		}
+	}
+	
 	public static void TrainModel(String dataPath) throws IOException, InvalidInputDataException {
 		String dataDir = null;
 		if(argsReader)
@@ -252,6 +266,16 @@ public class ApplicationControl {
 	}
 	
 	public static void TrainModel(String dataPath, String mPath) throws IOException, InvalidInputDataException {
+		mPath+=File.separator+"dp.model";
+		TrainModel(dataPath, mPath, true);
+	}
+	
+	public static void TestModel(String dataPath, String mPath) throws FileNotFoundException, IOException, ClassNotFoundException {
+		mPath+=File.separator+"dp.model";
+		TestModel(dataPath, mPath, true);
+	}
+	
+	public static void TrainModel(String dataPath, String mPath, boolean flag) throws IOException, InvalidInputDataException {
 		LinkedList<Feature> fl = new LinkedList<Feature>();
 		LinkedList<TagFeature> tfl = new LinkedList<TagFeature>();
 		ArcStandardDecoder.resetMemo();
@@ -259,8 +283,11 @@ public class ApplicationControl {
 		//read file
 		@SuppressWarnings("unused")
 		String dataDir = null;
-		if(argsReader)
-			dataDir = new File(dataPath).getParent();
+		String mDir = null;
+		if(argsReader) {
+			dataDir = new File(dataPath).getParent()+File.separator;
+			mDir = new File(mPath).getParent()+File.separator;
+		}
 		Reader rd;
 		if(argsReader)
 			rd = new Reader(dataPath);
@@ -334,7 +361,7 @@ public class ApplicationControl {
 			//write model to file
 			File modelPath;
 			if(argsReader)
-				modelPath = new File(mPath+"/dp.model");
+				modelPath = new File(mPath);
 			else
 				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
 			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath)));
@@ -348,7 +375,7 @@ public class ApplicationControl {
 			//write model to file
 			File modelPath;
 			if(argsReader)
-				modelPath = new File(mPath+"dp.model");
+				modelPath = new File(mPath);
 			else
 				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
 			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath)));
@@ -360,7 +387,7 @@ public class ApplicationControl {
 			LibClassifier pc;
 			if(argsReader)
 				pc = new LibSVM(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
-						mPath+"dp.model", mPath+"dp.feature");
+						mPath, mDir+"dp.feature");
 			else
 				pc = new LibSVM(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
 					"/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.feature");
@@ -379,14 +406,14 @@ public class ApplicationControl {
 			if(newPredArcTag) {
 				LibClassifier pc2;
 				if(argsReader)
-					pc2 = new LibSVM(tfl, mPath+"/tg.model", mPath+"/tg.feature");
+					pc2 = new LibSVM(tfl, mDir+"tg.model", mDir+"tg.feature");
 				else
 					pc2 = new LibSVM(tfl, "/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.feature");
 				System.out.println("ArcTag Feature: "+pc2.getnFeature()+" ArcTag #: "+pc2.getnNewTag());
 				//write model to file
 				File modelPath2;
 				if(argsReader)
-					modelPath2 = new File(mPath+"/tg.mapping");
+					modelPath2 = new File(mDir+"tg.mapping");
 				else
 					modelPath2 = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.mapping");
 				ObjectOutputStream oos2 = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath2)));
@@ -399,7 +426,7 @@ public class ApplicationControl {
 			LibClassifier pc;
 			if(argsReader)
 				pc = new LibLinear(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
-						mPath+"dp.model", mPath+"dp.feature");
+						mPath, mDir+"dp.feature");
 			else
 				pc = new LibLinear(fl, ArcStandard?ArcStandardDecoder.nLabel:ArcEagerDecoder.nLabel,
 						"/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.feature");
@@ -407,7 +434,7 @@ public class ApplicationControl {
 			//write model to file
 			File modelPath;
 			if(argsReader)
-				modelPath = new File(mPath+"dp.mapping");
+				modelPath = new File(mDir+"dp.mapping");
 			else
 				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.mapping");
 			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath)));
@@ -418,14 +445,14 @@ public class ApplicationControl {
 			if(newPredArcTag) {
 				LibClassifier pc2;
 				if(argsReader)
-					pc2 = new LibLinear(tfl, mPath+"/tg.model", mPath+"/tg.feature");
+					pc2 = new LibLinear(tfl, mDir+"tg.model", mDir+"tg.feature");
 				else
 					pc2 = new LibLinear(tfl, "/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.model", "/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.feature");
 				System.out.println("ArcTag Feature: "+pc2.getnFeature()+" ArcTag #: "+pc2.getnNewTag());
 				//write model to file
 				File modelPath2;
 				if(argsReader)
-					modelPath2 = new File(mPath+"/tg.mapping");
+					modelPath2 = new File(mDir+"tg.mapping");
 				else
 					modelPath2 = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.mapping");
 				ObjectOutputStream oos2 = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(modelPath2)));
@@ -435,12 +462,15 @@ public class ApplicationControl {
 		}
 	}
 	
-	public static void TestModel(String dataPath, String mPath) throws FileNotFoundException, IOException, ClassNotFoundException {
+	public static void TestModel(String dataPath, String mPath, boolean flag) throws FileNotFoundException, IOException, ClassNotFoundException {
 		//read file
 		@SuppressWarnings("unused")
 		String dataDir = null;
-		if(argsReader)
-			dataDir = new File(dataPath).getParent();
+		String mDir = null;
+		if(argsReader) {
+			dataDir = new File(dataPath).getParent()+File.separator;
+			mDir = new File(mPath).getParent()+File.separator;
+		}
 		Perceptron pc = null;
 		OnlinePerceptron opc = null;
 		LibClassifier lc = null;
@@ -449,7 +479,7 @@ public class ApplicationControl {
 			//read model from file
 			File modelPath;
 			if(argsReader)
-				modelPath = new File(mPath+"/dp.model");
+				modelPath = new File(mPath);
 			else
 				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
 			ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath)));
@@ -471,7 +501,7 @@ public class ApplicationControl {
 			//read model from file
 			File modelPath;
 			if(argsReader)
-				modelPath = new File(mPath+"dp.model");
+				modelPath = new File(mPath);
 			else
 				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
 			ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath)));
@@ -482,14 +512,14 @@ public class ApplicationControl {
 			//read model from file
 			File modelPath;
 			if(argsReader)
-				modelPath = new File(mPath+"dp.mapping");
+				modelPath = new File(mDir+"dp.mapping");
 			else
 				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.mapping");
 			ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath)));
 			lc = (LibSVM) ois.readObject();
 			ois.close();
 			if(argsReader)
-				lc.readModel(mPath+"dp.model");
+				lc.readModel(mPath);
 			else
 				lc.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
 			
@@ -497,14 +527,14 @@ public class ApplicationControl {
 			if(newPredArcTag) {
 				File modelPath2;
 				if(argsReader)
-					modelPath2 = new File(mPath+"/tg.mapping");
+					modelPath2 = new File(mDir+"tg.mapping");
 				else
 					modelPath2 = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.mapping");
 				ObjectInputStream ois2 = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath2)));
 				lc2 = (LibSVM) ois2.readObject();
 				ois2.close();
 				if(argsReader)
-					lc2.readModel(mPath+"/tg.model");
+					lc2.readModel(mDir+"tg.model");
 				else
 					lc2.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.model");
 			}
@@ -512,7 +542,7 @@ public class ApplicationControl {
 		else {
 			File modelPath;
 			if(argsReader)
-				modelPath = new File(mPath+"dp.mapping");
+				modelPath = new File(mDir+"dp.mapping");
 			else
 				modelPath = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.mapping");
 			ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath)));
@@ -520,7 +550,7 @@ public class ApplicationControl {
 			ois.close();
 			
 			if(argsReader)
-				lc.readModel(mPath+"dp.model");
+				lc.readModel(mPath);
 			else
 				lc.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/dp.model");
 			
@@ -528,7 +558,7 @@ public class ApplicationControl {
 			if(newPredArcTag) {
 				File modelPath2;
 				if(argsReader)
-					modelPath2 = new File(mPath+"/tg.mapping");
+					modelPath2 = new File(mDir+"tg.mapping");
 				else
 					modelPath2 = new File("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.mapping");
 				ObjectInputStream ois2 = new ObjectInputStream(new GZIPInputStream(new FileInputStream(modelPath2)));
@@ -536,7 +566,7 @@ public class ApplicationControl {
 				ois2.close();
 				
 				if(argsReader)
-					lc2.readModel(mPath+"/tg.model");
+					lc2.readModel(mDir+"tg.model");
 				else
 					lc2.readModel("/Users/zaa/Desktop/VIS hiwi/dep_parsing/tg.model");
 				

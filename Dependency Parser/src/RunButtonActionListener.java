@@ -16,7 +16,7 @@ public class RunButtonActionListener implements ActionListener{
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		if(gui.getFilepath()==null) {
-			JOptionPane.showMessageDialog(gui.getMainwindow(), "No file selected!", "No File", JOptionPane.WARNING_MESSAGE);
+			JOptionPane.showMessageDialog(gui.getMainwindow(), "No data file selected!", "No Data File", JOptionPane.WARNING_MESSAGE);
 			gui.getFilebtn().requestFocus();
 			return;
 		}
@@ -26,16 +26,29 @@ public class RunButtonActionListener implements ActionListener{
 				gui.getFilebtn2().requestFocus();
 				return;
 			}
-			File ml = new File(gui.getFilepath());
+			File ml = new File(gui.getModelPath());
 			if(!ml.exists()) {
-				JOptionPane.showMessageDialog(gui.getMainwindow(), "Not valid model folder!", "Invalid Model", JOptionPane.WARNING_MESSAGE);
+				JOptionPane.showMessageDialog(gui.getMainwindow(), "Invalid model folder!", "Invalid Model", JOptionPane.WARNING_MESSAGE);
+				gui.getFilebtn2().requestFocus();
+				return;
+			}
+		}
+		if(gui instanceof GUIThesis) {
+			if(gui.getModelPath()==null) {
+				JOptionPane.showMessageDialog(gui.getMainwindow(), "No model file selected!", "No Model", JOptionPane.WARNING_MESSAGE);
+				gui.getFilebtn2().requestFocus();
+				return;
+			}
+			File ml = new File(gui.getModelPath());
+			if(ApplicationControl.testMark && !ml.exists()) {
+				JOptionPane.showMessageDialog(gui.getMainwindow(), "Invalid model file!", "Invalid Model", JOptionPane.WARNING_MESSAGE);
 				gui.getFilebtn2().requestFocus();
 				return;
 			}
 		}
 		File fl = new File(gui.getFilepath());
 		if(!fl.exists()) {
-			JOptionPane.showMessageDialog(gui.getMainwindow(), "Not valid file!", "Invalid File", JOptionPane.WARNING_MESSAGE);
+			JOptionPane.showMessageDialog(gui.getMainwindow(), "Invalid data file!", "Invalid Data File", JOptionPane.WARNING_MESSAGE);
 			gui.getFilebtn().requestFocus();
 		}
 		else
