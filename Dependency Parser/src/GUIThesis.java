@@ -41,7 +41,7 @@ public class GUIThesis implements GUI {
 		//build the main window
 		mainwindow = new JFrame();
 		mainwindow.setTitle("Dependency Parser");
-		mainwindow.setSize(600, 95);
+		mainwindow.setSize(620, 95);
 		//mainwindow.setLocation(100, 100);
 		mainwindow.setLocationRelativeTo(null);
 		mainwindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

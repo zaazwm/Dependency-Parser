@@ -354,6 +354,7 @@ public class ArcEagerOnlineDecoder {
 		else if(ApplicationControl.AfterEndSolution==1) {  //All Root
 			while(s.getStack().size()>1) {
 				if(s.getHeads()[s.getStack().peekLast().getID()]==-1 && !s.getStack().peekLast().getPos().equals("ROOT")) {
+					System.out.println("Final: head=ROOT");
 					//add information to state: heads, leftmost, rightmost
 					s.getHeads()[s.getStack().peekLast().getID()]=0;
 					if(s.getLeftMost()[0]==-1 
