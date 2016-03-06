@@ -49,7 +49,7 @@ public class GUIThesis implements GUI {
 		panel.setSize(mainwindow.getSize());
 		
 		FileDialog dlg = new FileDialog(mainwindow, "Open a Data File");
-		filebtn = new Button("Open File");
+		filebtn = new Button("Open Data");
 		panel.add(filebtn);
 		filebtn.addActionListener(new FileButtonActionListener(GUIThesis.this, dlg));
 		
@@ -103,8 +103,6 @@ public class GUIThesis implements GUI {
 		panel.setVisible(true);
 		mainwindow.add(panel);
 		mainwindow.setVisible(true);
-		
-		mainwindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	}
 	
 	@Override
