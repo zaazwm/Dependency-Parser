@@ -40,8 +40,7 @@ public class Reader {
 				break;
 			}
 			String[] fields = line.split("\t");
-			if(fields[fieldID].contains("_"))
-				fields[fieldID]=fields[fieldID].substring(fields[fieldID].lastIndexOf('_')+1);
+			fields[fieldID]=fields[fieldID].substring(fields[fieldID].lastIndexOf('_')+1);
 			if(ApplicationControl.predictArcTag) {
 				//only read id, form, lemma, pos, head information, arc-tag
 				wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],Integer.parseInt(fields[fieldHead]),fields[fieldRel]));
@@ -74,8 +73,7 @@ public class Reader {
 				break;
 			}
 			String[] fields = line.split("\t");
-			if(fields[fieldID].contains("_"))
-				fields[fieldID]=fields[fieldID].substring(fields[fieldID].lastIndexOf('_')+1);
+			fields[fieldID]=fields[fieldID].substring(fields[fieldID].lastIndexOf('_')+1);
 			if(ApplicationControl.predictArcTag) {
 				wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],-1,fields[fieldRel]));
 			}
