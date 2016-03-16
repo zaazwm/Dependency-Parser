@@ -39,7 +39,8 @@ public class ApplicationControl {
 	public static boolean ArcEagerOnline=false; //true to only use ArcEager, Dynamic Oracle, Unshift supported
 	public static boolean OnlineStaticPerceptron=false;  //use ArcEagerOnline for decoder, supporting static oracle
 	public static boolean OnlineDynamicPerceptron=false;  //use ArcEagerOnline for decoder, supporting Dynamic Oracle
-	public static boolean OnlineDynamicUnshiftPerc=true;  //use ArcEagerOnline for decoder, supporting Unshift & Dynamic Oracle
+	public static boolean UnshiftEnabled=false;  //use ArcEagerOnline for decoder, supporting Unshift & Dynamic Oracle
+	public static boolean NonMonotonic=false;  //true to use Non-Monotonic transitions
 	public static int AfterEndSolution = 0;  //select after-end non-terminal solution
 											 //0 - "Ignore", 1 - "All Root", 2 - "All RightArc", 3 - "All LeftArc", 4 - "By Oracle"
 
@@ -66,8 +67,9 @@ public class ApplicationControl {
 		para.addOption("AEO", "AEOnline", false, "use ArcEagerOnline for decoder, supporting Unshift & Dynamic Oracle");
 		para.addOption("OSP", "OnlineStaticPerceptron", false, "use ArcEagerOnline for decoder, supporting static oracle <default>");
 		para.addOption("ODP", "OnlineDynamicPerceptron", false, "use ArcEagerOnline for decoder, supporting Dynamic Oracle");
-		para.addOption("ODUP", "OnlineDynamicUnshiftPerc", false, "use ArcEagerOnline for decoder, supporting Unshift & Dynamic Oracle");
+		para.addOption("US", "UnshiftEnabled", false, "enable Unshift transition");
 		para.addOption("AES", "AfterEndSolution", true, "Choose the after end solution [1-5]");
+		para.addOption("NM", "NonMonotonic", false, "use Non-Monotonic Transitions");
 		
 		
 		CommandLine cl = parser.parse(para, args);
@@ -141,8 +143,11 @@ public class ApplicationControl {
 		if(cl.hasOption("ODP") || cl.hasOption("OnlineDynamicPerceptron"))
 			OnlineDynamicPerceptron=true;
 		
-		if(cl.hasOption("ODUP") || cl.hasOption("OnlineDynamicUnshiftPerc"))
-			OnlineDynamicUnshiftPerc=true;
+		if(cl.hasOption("US") || cl.hasOption("UnshiftEnabled"))
+			UnshiftEnabled=true;
+		
+		if(cl.hasOption("NM") || cl.hasOption("NonMonotonic"))
+			NonMonotonic=true;
 		
 		if(cl.hasOption("AES")) {
 			AfterEndSolution = Integer.parseInt(cl.getOptionValue("AES"));
@@ -174,7 +179,8 @@ public class ApplicationControl {
 		System.out.println("ArcEagerOnline = "+ArcEagerOnline);
 		System.out.println("OnlineStaticPerceptron = "+OnlineStaticPerceptron);
 		System.out.println("OnlineDynamicPerceptron = "+OnlineDynamicPerceptron);
-		System.out.println("OnlineDynamicUnshiftPerc = "+OnlineDynamicUnshiftPerc);
+		System.out.println("OnlineDynamicUnshiftPerc = "+UnshiftEnabled);
+		System.out.println("NonMonotonic = "+NonMonotonic);
 		System.out.println("AfterEndSolution = "+AfterEndSolution);
 		
 		//run the program
@@ -304,11 +310,11 @@ public class ApplicationControl {
 			opc = new StaticPerceptron(ArcEagerOnlineDecoder.nLabel);
 		}
 		else if(OnlineDynamicPerceptron) {
-			ArcEagerOnlineDecoder.disableUnshift();
-			opc = new DynamicPerceptron(ArcEagerOnlineDecoder.nLabel);
-		}
-		else if(OnlineDynamicUnshiftPerc) {
-			ArcEagerOnlineDecoder.enableUnshift();
+			if(UnshiftEnabled) {
+				ArcEagerOnlineDecoder.enableUnshift();
+			} else {
+				ArcEagerOnlineDecoder.disableUnshift();
+			}
 			opc = new DynamicPerceptron(ArcEagerOnlineDecoder.nLabel);
 		}
 		
@@ -488,11 +494,11 @@ public class ApplicationControl {
 				opc = (StaticPerceptron) ois.readObject();
 			}
 			else if(OnlineDynamicPerceptron) {
-				ArcEagerOnlineDecoder.disableUnshift();
-				opc = (DynamicPerceptron) ois.readObject();
-			}
-			else if(OnlineDynamicUnshiftPerc) {
-				ArcEagerOnlineDecoder.enableUnshift();
+				if(UnshiftEnabled) {
+					ArcEagerOnlineDecoder.enableUnshift();
+				} else {
+					ArcEagerOnlineDecoder.disableUnshift();
+				}
 				opc = (DynamicPerceptron) ois.readObject();
 			}
 			ois.close();

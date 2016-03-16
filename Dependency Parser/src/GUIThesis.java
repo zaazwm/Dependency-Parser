@@ -24,7 +24,7 @@ public class GUIThesis implements GUI {
 	public Button filebtn;
 	public Button filebtn2;
 	
-	public static final String[] decoders = {"ArcEager", "ArcEager+Unshift"};
+	public static final String[] decoders = {"ArcEager", "ArcEager+NM", "ArcEager+NM+Unshift"};
 	public static final String[] trainings = {"StaticPerceptron", "DynamicPerceptron"};
 	public static final String[] methods = {"Train", "Dev", "Test"};
 	public static final String[] afterends = {"Ignore", "All Root", "All RightArc", "All LeftArc", "By Oracle"};
@@ -41,7 +41,7 @@ public class GUIThesis implements GUI {
 		//build the main window
 		mainwindow = new JFrame();
 		mainwindow.setTitle("Dependency Parser");
-		mainwindow.setSize(620, 95);
+		mainwindow.setSize(650, 95);
 		//mainwindow.setLocation(100, 100);
 		mainwindow.setLocationRelativeTo(null);
 		mainwindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -89,7 +89,7 @@ public class GUIThesis implements GUI {
 		predcb.setVisible(false);
 		
 		//default values
-		decoder.setSelectedIndex(1);
+		decoder.setSelectedIndex(2);
 		training.setSelectedIndex(1);
 		method.setSelectedIndex(0);
 		afterend.setSelectedIndex(0);
@@ -123,7 +123,8 @@ public class GUIThesis implements GUI {
 		System.out.println("ArcEagerOnline = "+ApplicationControl.ArcEagerOnline);
 		System.out.println("OnlineStaticPerceptron = "+ApplicationControl.OnlineStaticPerceptron);
 		System.out.println("OnlineDynamicPerceptron = "+ApplicationControl.OnlineDynamicPerceptron);
-		System.out.println("OnlineDynamicUnshiftPerc = "+ApplicationControl.OnlineDynamicUnshiftPerc);
+		System.out.println("UnshiftEnabled = "+ApplicationControl.UnshiftEnabled);
+		System.out.println("NonMonotonic = "+ApplicationControl.NonMonotonic);
 		System.out.println("AfterEndSolution = "+ApplicationControl.AfterEndSolution);
 		System.out.println("filePath = "+filepath);
 		System.out.println("modelPath = "+modelpath);
@@ -141,20 +142,33 @@ public class GUIThesis implements GUI {
 	public void processCombo(String selected) {
 		//deal with combo boxes, change the parameters
 		ApplicationControl.AfterEndSolution=afterend.getSelectedIndex();
-		//if(selected.equals(decoders[0])) {
-		if(selected.equals("ArcEager+Unshift")) {
+		//if(selected.equals(decoders[2])) {
+		if(selected.equals("ArcEager+NM+Unshift")) {
 			ApplicationControl.ArcEagerOnline=true;
-			ApplicationControl.OnlineDynamicUnshiftPerc=true;
-			ApplicationControl.OnlineDynamicPerceptron=false;
+			ApplicationControl.UnshiftEnabled=true;
+			ApplicationControl.OnlineDynamicPerceptron=true;
 			ApplicationControl.OnlineStaticPerceptron=false;
+			ApplicationControl.NonMonotonic=true;
 			training.setEnabled(false);
 			training.setSelectedIndex(1);
 			return;
 		}
 		//if(selected.equals(decoders[1])) {
+		if(selected.equals("ArcEager+NM")) {
+			ApplicationControl.ArcEagerOnline=true;
+			ApplicationControl.UnshiftEnabled=false;
+			ApplicationControl.OnlineDynamicPerceptron=true;
+			ApplicationControl.OnlineStaticPerceptron=false;
+			ApplicationControl.NonMonotonic=true;
+			training.setEnabled(false);
+			training.setSelectedIndex(1);
+			return;
+		}
+		//if(selected.equals(decoders[0])) {
 		if(selected.equals("ArcEager")) {
 			ApplicationControl.ArcEagerOnline=true;
-			ApplicationControl.OnlineDynamicUnshiftPerc=false;
+			ApplicationControl.UnshiftEnabled=false;
+			ApplicationControl.NonMonotonic=false;
 			if(training.getSelectedIndex()==0) {
 				ApplicationControl.OnlineStaticPerceptron=true;
 				ApplicationControl.OnlineDynamicPerceptron=false;
@@ -168,23 +182,22 @@ public class GUIThesis implements GUI {
 		}
 		//if(selected.equals(trainings[0])) {
 		if(selected.equals("StaticPerceptron")) {
-			ApplicationControl.OnlineDynamicUnshiftPerc=false;
+			ApplicationControl.UnshiftEnabled=false;
 			ApplicationControl.OnlineDynamicPerceptron=false;
 			ApplicationControl.OnlineStaticPerceptron=true;
 			decoder.setSelectedIndex(0);
 			decoder.setEnabled(false);
 			return;
 		}
-		//if(selected.equals(decoders[2])) {
+		//if(selected.equals(trainings[1])) {
 		if(selected.equals("DynamicPerceptron")) {
 			ApplicationControl.OnlineStaticPerceptron=false;
-			if(decoder.getSelectedIndex()==0) {
-				ApplicationControl.OnlineDynamicPerceptron=true;
-				ApplicationControl.OnlineDynamicUnshiftPerc=false;
+			ApplicationControl.OnlineDynamicPerceptron=true;
+			if(decoder.getSelectedIndex()<=1) {
+				ApplicationControl.UnshiftEnabled=false;
 			}
-			else if(decoder.getSelectedIndex()==1) {
-				ApplicationControl.OnlineDynamicPerceptron=false;
-				ApplicationControl.OnlineDynamicUnshiftPerc=true;
+			else if(decoder.getSelectedIndex()==2) {
+				ApplicationControl.UnshiftEnabled=true;
 			}
 			decoder.setEnabled(true);
 			return;

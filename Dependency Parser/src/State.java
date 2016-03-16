@@ -32,7 +32,7 @@ public class State {
 			heads[i]=-1;
 			leftMost[i]=-1;
 			rightMost[i]=-1;
-			unshift[i]=true;
+			unshift[i]=false;
 		}
 	}
 	
@@ -44,7 +44,7 @@ public class State {
 		rightMost=r;
 		size=h.length;
 		unshift = new boolean[size];
-		Arrays.fill(unshift, true);
+		Arrays.fill(unshift, false);
 	}
 	
 	public State(LinkedList<Word> b, LinkedList<Word> s, int[] h, int[] l, int[] r, boolean[] u) {
@@ -127,7 +127,7 @@ public class State {
 	}
 	
 	public void setUnshift(int id) {
-		this.unshift[id]=false;
+		this.unshift[id]=true;
 	}
 	
 	public boolean getUnshift(int id) {
