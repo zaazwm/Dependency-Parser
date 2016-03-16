@@ -82,10 +82,58 @@ public class ArcEagerOnlineDecoder {
 			
 			//argmax of correct assignments
 			int argminCost = Integer.MAX_VALUE;
+			int minCount = 0;
 			for(int cost : nlCorrect) {
-				if(cost<argminCost)
+				if(cost<argminCost) {
 					argminCost=cost;
+					minCount=1;
+				}
+				else if(cost==argminCost) {
+					minCount++;
+				}
 			}
+			//prefer zero-cost also with zero monotonic cost
+			if(ApplicationControl.NonMonotonic && argminCost==0 && minCount>1) {
+				ApplicationControl.NonMonotonic = false;
+				if(nlCorrect[Configuration.getConfToInt("LeftArc")] == 0)
+					nlCorrect[Configuration.getConfToInt("LeftArc")]=costLeftArc(s);
+				if(nlCorrect[Configuration.getConfToInt("RightArc")] == 0)
+					nlCorrect[Configuration.getConfToInt("RightArc")]=costRightArc(s);
+				if(nlCorrect[Configuration.getConfToInt("Reduce")] == 0)
+					nlCorrect[Configuration.getConfToInt("Reduce")]=costReduce(s);
+				if(useUnshift && nlCorrect[Configuration.getConfToInt("Unshift")] == 0) {
+					nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
+				}
+				if(nlCorrect[Configuration.getConfToInt("Shift")] == 0)
+					nlCorrect[Configuration.getConfToInt("Shift")]=costShift(s);
+				
+				ApplicationControl.NonMonotonic = true;
+				
+				argminCost = Integer.MAX_VALUE;
+				for(int cost : nlCorrect) {
+					if(cost<argminCost) {
+						argminCost=cost;
+					}
+				}
+				//no zero monotonic cost found, back to only non-monotonic cost
+				if(argminCost!=0) {
+					nlCorrect[Configuration.getConfToInt("LeftArc")]=costLeftArc(s);
+					nlCorrect[Configuration.getConfToInt("RightArc")]=costRightArc(s);
+					nlCorrect[Configuration.getConfToInt("Reduce")]=costReduce(s);
+					if(useUnshift) {
+						nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
+					}
+					nlCorrect[Configuration.getConfToInt("Shift")]=costShift(s);
+					
+					argminCost = Integer.MAX_VALUE;
+					for(int cost : nlCorrect) {
+						if(cost<argminCost) {
+							argminCost=cost;
+						}
+					}
+				}
+			}
+			
 			for(int i=0;i<nlCorrect.length;i++) {
 				if(nlCorrect[i]==argminCost && argminCost!=Integer.MAX_VALUE)
 					nlCorrect[i]=i;
@@ -157,11 +205,10 @@ public class ArcEagerOnlineDecoder {
 				//add configuration to list
 				conf = (new Configuration(s.clone(),st,"Reduce", null));
 				//do reduce
-				if(ApplicationControl.NonMonotonic && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
+				if(ApplicationControl.NonMonotonic && !useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
 					//system-3-headless
-					int topID = s.getStack().peekLast().getID();
-					s.getStack().removeLast();
-					makeArc(s, s.getStack().peekLast().getID(), topID);
+					Word topWord = s.getStack().removeLast();
+					makeArc(s, s.getStack().peekLast().getID(), topWord.getID());
 				} 
 				else {
 					//system-1, system-3-other, system-4
@@ -263,13 +310,12 @@ public class ArcEagerOnlineDecoder {
 			}
 			else if(bestTrans==3) {  //reduce
 				//do reduce
-				if(ApplicationControl.NonMonotonic && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
+				if(ApplicationControl.NonMonotonic && !useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
 					//system-3-headless
-					int topID = s.getStack().peekLast().getID();
-					s.getStack().removeLast();
+					Word topWord = s.getStack().removeLast();
 					
-					makeArc(s, s.getStack().peekLast().getID(), topID);
-					st.getWdList().get(topID).setHead(s.getStack().peekLast().getID());
+					makeArc(s, s.getStack().peekLast().getID(), topWord.getID());
+					st.getWdList().get(topWord.getID()).setHead(s.getStack().peekLast().getID());
 				} 
 				else {
 					//system-1, system-3-other, system-4
@@ -857,6 +903,9 @@ public class ArcEagerOnlineDecoder {
 	private static boolean legalRightArc(State s) {
 		//system-1, system-3, system-4
 		if(s.getBuffer().isEmpty() || s.getStack().isEmpty())
+			return false;
+		
+		if(s.getHeads()[s.getBuffer().peekFirst().getID()]!=-1)
 			return false;
 		
 		return true;
