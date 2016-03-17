@@ -44,8 +44,15 @@ public class ArcEagerOnlineDecoder {
 						nPredict=p;
 						break;
 					}
+					//system-4-unshift
+					if(ApplicationControl.NonMonotonic && useUnshift) {
+						if(legalUnshift(s)) {
+							nPredict=p;
+							break;
+						}
+					}
 				}
-				else if(useUnshift && p==Configuration.getConfToInt("Unshift")) {
+				else if(!ApplicationControl.NonMonotonic && useUnshift && p==Configuration.getConfToInt("Unshift")) {
 					if(legalUnshift(s)) {
 						nPredict=p;
 						break;
@@ -65,7 +72,8 @@ public class ArcEagerOnlineDecoder {
 			nlCorrect[Configuration.getConfToInt("LeftArc")]=costLeftArc(s);
 			nlCorrect[Configuration.getConfToInt("RightArc")]=costRightArc(s);
 			nlCorrect[Configuration.getConfToInt("Reduce")]=costReduce(s);
-			if(useUnshift) {
+			if(!ApplicationControl.NonMonotonic && useUnshift) {
+				//system-4-unshift
 				nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
 			}
 			nlCorrect[Configuration.getConfToInt("Shift")]=costShift(s);
@@ -101,7 +109,8 @@ public class ArcEagerOnlineDecoder {
 					nlCorrect[Configuration.getConfToInt("RightArc")]=costRightArc(s);
 				if(nlCorrect[Configuration.getConfToInt("Reduce")] == 0)
 					nlCorrect[Configuration.getConfToInt("Reduce")]=costReduce(s);
-				if(useUnshift && nlCorrect[Configuration.getConfToInt("Unshift")] == 0) {
+				if(false && useUnshift && nlCorrect[Configuration.getConfToInt("Unshift")] == 0) {
+					//system-4-unshift
 					nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
 				}
 				if(nlCorrect[Configuration.getConfToInt("Shift")] == 0)
@@ -120,7 +129,8 @@ public class ArcEagerOnlineDecoder {
 					nlCorrect[Configuration.getConfToInt("LeftArc")]=costLeftArc(s);
 					nlCorrect[Configuration.getConfToInt("RightArc")]=costRightArc(s);
 					nlCorrect[Configuration.getConfToInt("Reduce")]=costReduce(s);
-					if(useUnshift) {
+					if(!ApplicationControl.NonMonotonic && useUnshift) {
+						//system-4-unshift
 						nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
 					}
 					nlCorrect[Configuration.getConfToInt("Shift")]=costShift(s);
@@ -211,8 +221,17 @@ public class ArcEagerOnlineDecoder {
 					makeArc(s, s.getStack().peekLast().getID(), topWord.getID());
 				} 
 				else {
-					//system-1, system-3-other, system-4
-					s.getStack().removeLast();
+					if(ApplicationControl.NonMonotonic && useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
+						//system-4-unshift
+						//add configuration to list
+						conf = (new Configuration(s.clone(),st,"Unshift", null));
+						//do unshift
+						s.getBuffer().add(s.getStack().removeLast());
+					}
+					else {
+						//system-1, system-3-other, system-4
+						s.getStack().removeLast();
+					}
 				}
 			}
 			else if(useUnshift && nNext==Configuration.getConfToInt("Unshift")) {
@@ -267,6 +286,11 @@ public class ArcEagerOnlineDecoder {
 						bestTrans=b;
 						break;
 					}
+					//system-4-unshift
+					if(ApplicationControl.NonMonotonic && useUnshift && legalUnshift(s)) {
+						bestTrans=b;
+						break;
+					}
 				}
 				else if(useUnshift && b==Configuration.getConfToInt("Unshift")) {
 					if(legalUnshift(s)) {
@@ -318,8 +342,14 @@ public class ArcEagerOnlineDecoder {
 					st.getWdList().get(topWord.getID()).setHead(s.getStack().peekLast().getID());
 				} 
 				else {
-					//system-1, system-3-other, system-4
-					s.getStack().removeLast();
+					if(ApplicationControl.NonMonotonic && useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
+						//system-4-unshift
+						s.getBuffer().add(s.getStack().removeLast());
+					} 
+					else {
+						//system-1, system-3-other, system-4
+						s.getStack().removeLast();
+					}
 				}
 			}
 			else if(useUnshift && bestTrans==4) {  //unshift
@@ -982,7 +1012,13 @@ public class ArcEagerOnlineDecoder {
 	
 	public static void enableUnshift() {
 		useUnshift=true;
-		nLabel=5;
+		if(ApplicationControl.NonMonotonic) {
+			//system-4-unshift
+			nLabel=4;
+		}
+		else {
+			nLabel=5;
+		}
 	}
 	
 	public static void disableUnshift() {
