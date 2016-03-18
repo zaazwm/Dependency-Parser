@@ -44,15 +44,8 @@ public class ArcEagerOnlineDecoder {
 						nPredict=p;
 						break;
 					}
-					//system-4-unshift
-					if(ApplicationControl.NonMonotonic && useUnshift) {
-						if(legalUnshift(s)) {
-							nPredict=p;
-							break;
-						}
-					}
 				}
-				else if(!ApplicationControl.NonMonotonic && useUnshift && p==Configuration.getConfToInt("Unshift")) {
+				else if(ApplicationControl.SingleClassReUs && useUnshift && p==Configuration.getConfToInt("Unshift")) {
 					if(legalUnshift(s)) {
 						nPredict=p;
 						break;
@@ -72,8 +65,7 @@ public class ArcEagerOnlineDecoder {
 			nlCorrect[Configuration.getConfToInt("LeftArc")]=costLeftArc(s);
 			nlCorrect[Configuration.getConfToInt("RightArc")]=costRightArc(s);
 			nlCorrect[Configuration.getConfToInt("Reduce")]=costReduce(s);
-			if(!ApplicationControl.NonMonotonic && useUnshift) {
-				//system-4-unshift
+			if(ApplicationControl.SingleClassReUs && useUnshift) {
 				nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
 			}
 			nlCorrect[Configuration.getConfToInt("Shift")]=costShift(s);
@@ -109,8 +101,7 @@ public class ArcEagerOnlineDecoder {
 					nlCorrect[Configuration.getConfToInt("RightArc")]=costRightArc(s);
 				if(nlCorrect[Configuration.getConfToInt("Reduce")] == 0)
 					nlCorrect[Configuration.getConfToInt("Reduce")]=costReduce(s);
-				if(false && useUnshift && nlCorrect[Configuration.getConfToInt("Unshift")] == 0) {
-					//system-4-unshift
+				if(ApplicationControl.SingleClassReUs && useUnshift && nlCorrect[Configuration.getConfToInt("Unshift")] == 0) {
 					nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
 				}
 				if(nlCorrect[Configuration.getConfToInt("Shift")] == 0)
@@ -129,8 +120,7 @@ public class ArcEagerOnlineDecoder {
 					nlCorrect[Configuration.getConfToInt("LeftArc")]=costLeftArc(s);
 					nlCorrect[Configuration.getConfToInt("RightArc")]=costRightArc(s);
 					nlCorrect[Configuration.getConfToInt("Reduce")]=costReduce(s);
-					if(!ApplicationControl.NonMonotonic && useUnshift) {
-						//system-4-unshift
+					if(ApplicationControl.SingleClassReUs && useUnshift) {
 						nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
 					}
 					nlCorrect[Configuration.getConfToInt("Shift")]=costShift(s);
@@ -221,7 +211,7 @@ public class ArcEagerOnlineDecoder {
 					makeArc(s, s.getStack().peekLast().getID(), topWord.getID());
 				} 
 				else {
-					if(ApplicationControl.NonMonotonic && useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
+					if(!ApplicationControl.SingleClassReUs && useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
 						//system-4-unshift
 						//add configuration to list
 						conf = (new Configuration(s.clone(),st,"Unshift", null));
@@ -229,7 +219,7 @@ public class ArcEagerOnlineDecoder {
 						s.getBuffer().add(s.getStack().removeLast());
 					}
 					else {
-						//system-1, system-3-other, system-4
+						//system-1, system-3-other, system-4-reduce
 						s.getStack().removeLast();
 					}
 				}
@@ -286,11 +276,6 @@ public class ArcEagerOnlineDecoder {
 						bestTrans=b;
 						break;
 					}
-					//system-4-unshift
-					if(ApplicationControl.NonMonotonic && useUnshift && legalUnshift(s)) {
-						bestTrans=b;
-						break;
-					}
 				}
 				else if(useUnshift && b==Configuration.getConfToInt("Unshift")) {
 					if(legalUnshift(s)) {
@@ -342,12 +327,12 @@ public class ArcEagerOnlineDecoder {
 					st.getWdList().get(topWord.getID()).setHead(s.getStack().peekLast().getID());
 				} 
 				else {
-					if(ApplicationControl.NonMonotonic && useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
+					if(!ApplicationControl.SingleClassReUs && useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
 						//system-4-unshift
 						s.getBuffer().add(s.getStack().removeLast());
 					} 
 					else {
-						//system-1, system-3-other, system-4
+						//system-1, system-3-other, system-4-reduce
 						s.getStack().removeLast();
 					}
 				}
@@ -735,183 +720,200 @@ public class ArcEagerOnlineDecoder {
 	}
 	
 	//cost function for each transition
-		private static int costReduce(State s) {
-			if(!legalReduce(s))
-				return Integer.MAX_VALUE;
-			
-			int cost = 0;
-			
-			//system-1
+	private static int costReduce(State s) {
+		if(!legalReduce(s))
+			return Integer.MAX_VALUE;
+		
+		int cost = 0;
+		
+		//system-1
+		for(Word w : s.getBuffer()) {
+			if(w.getHead()==s.getStack().peekLast().getID())
+				cost++;
+		}
+		
+		if(ApplicationControl.NonMonotonic) {
+			//system-3, system-4
+			//NM_LA
 			for(Word w : s.getBuffer()) {
-				if(w.getHead()==s.getStack().peekLast().getID())
+				if(s.getStack().peekLast().getHead()==w.getID()) {
 					cost++;
+					break;
+				}
 			}
+			//NM_RE = 0
+			//Unshift = 0
+		}
+		
+		return cost;
+	}
+
+	private static int costLeftArc(State s) {
+		if(!legalLeftArc(s))
+			return Integer.MAX_VALUE;
+		
+		int cost = 0;
+		
+		//system-1
+		for(Word w : s.getBuffer()) {
+			if(w==s.getBuffer().peekFirst())
+				continue;
 			
-			if(ApplicationControl.NonMonotonic) {
-				//system-3, system-4
-				//NM_LA
+			if(s.getStack().peekLast().getHead()==w.getID())
+				cost++;
+			if(w.getHead()==s.getStack().peekLast().getID())
+				cost++;
+		}
+		
+		if(ApplicationControl.NonMonotonic) {
+			//system-3
+			//NM_LA
+			if(s.getStack().peekLast().getHead()==s.getHeads()[s.getStack().peekLast().getID()])
+				cost++;
+			if(s.getStack().peekLast().getHead()!=s.getBuffer().peekFirst().getID()) {
 				for(Word w : s.getBuffer()) {
 					if(s.getStack().peekLast().getHead()==w.getID()) {
 						cost++;
 						break;
 					}
 				}
-				//NM_RE = 0
-				//Unshift = 0
 			}
-						
-			return cost;
+			if(!useUnshift) {
+				//system-3
+				//NM_RE
+				if(s.getHeads()[s.getStack().peekLast().getID()]==-1) {
+					Word stackTop = s.getStack().removeLast();
+					if(stackTop.getHead()==s.getStack().peekLast().getID())
+						cost++;
+					s.getStack().addLast(stackTop);
+				}
+			}
+			else {
+				//system-4
+				//Unshift
+				for(Word w : s.getStack()) {
+					if(s.getStack().peekLast().getHead()==w.getID())
+						cost++;
+					break;
+				}
+			}
 		}
 
-		private static int costLeftArc(State s) {
-			if(!legalLeftArc(s))
-				return Integer.MAX_VALUE;
+		return cost;
+	}
+	
+	private static int costRightArc(State s) {
+		if(!legalRightArc(s))
+			return Integer.MAX_VALUE;
+		
+		int cost = 0;
+		
+		//system-1
+		for(Word w : s.getStack()) {
+			if(w==s.getStack().peekLast())
+				continue;
 			
-			int cost = 0;
+			if(s.getBuffer().peekFirst().getHead()==w.getID())
+				cost++;
+			if(w.getHead()==s.getBuffer().peekFirst().getID() && s.getHeads()[w.getID()]==-1)
+				cost++;
+		}
+		for(Word w : s.getBuffer()) {
+			if(w==s.getBuffer().peekFirst()) 
+				continue;
 			
-			//system-1
-			for(Word w : s.getBuffer()) {
-				if(w==s.getBuffer().peekFirst())
-					continue;
-				
-				if(s.getStack().peekLast().getHead()==w.getID())
-					cost++;
-				if(w.getHead()==s.getStack().peekLast().getID())
-					cost++;
+			if(s.getBuffer().peekFirst().getHead()==w.getID()) {
+				cost++;
+				break;
 			}
-			
-			if(ApplicationControl.NonMonotonic) {
-				//system-3
-				//NM_LA
-				if(s.getStack().peekLast().getHead()==s.getHeads()[s.getStack().peekLast().getID()])
-					cost++;
-				if(s.getStack().peekLast().getHead()!=s.getBuffer().peekFirst().getID()) {
-					for(Word w : s.getBuffer()) {
-						if(s.getStack().peekLast().getHead()==w.getID()) {
-							cost++;
-							break;
-						}
-					}
-				}
-				if(!useUnshift) {
-					//system-3
-					//NM_RE
-					if(s.getHeads()[s.getStack().peekLast().getID()]==-1) {
-						Word stackTop = s.getStack().removeLast();
-						if(stackTop.getHead()==s.getStack().peekLast().getID())
-							cost++;
-						s.getStack().addLast(stackTop);
-					}
-				}
-				else {
-					//system-4
-					//Unshift
-					for(Word w : s.getStack()) {
-						if(s.getStack().peekLast().getHead()==w.getID())
-							cost++;
-						break;
-					}
-				}
-			}
-
-			return cost;
 		}
 		
-		private static int costRightArc(State s) {
-			if(!legalRightArc(s))
-				return Integer.MAX_VALUE;
-			
-			int cost = 0;
-			
-			//system-1
-			for(Word w : s.getStack()) {
-				if(w==s.getStack().peekLast())
-					continue;
-				
-				if(s.getBuffer().peekFirst().getHead()==w.getID())
-					cost++;
-				if(w.getHead()==s.getBuffer().peekFirst().getID() && s.getHeads()[w.getID()]==-1)
-					cost++;
-			}
+		if(ApplicationControl.NonMonotonic) {
+			//system-3
+			//NM_LA
 			for(Word w : s.getBuffer()) {
 				if(w==s.getBuffer().peekFirst()) 
 					continue;
 				
 				if(s.getBuffer().peekFirst().getHead()==w.getID()) {
-					cost++;
+					cost--;
 					break;
 				}
 			}
+			for(Word w : s.getStack()) {
+				if(w==s.getStack().peekLast())
+					continue;
+				
+				if(s.getHeads()[w.getID()]!=-1 && w.getHead()==s.getBuffer().peekFirst().getID())
+					cost++;
+			}
+			//NM_RE = 0
 			
-			if(ApplicationControl.NonMonotonic) {
-				//system-3
-				//NM_LA
+			//system-4 Unshift = 0
+		}
+		
+		if(cost<0)
+			cost=0;
+		return cost;
+	}
+	
+	private static int costUnshift(State s) {
+		if(!legalUnshift(s))
+			return Integer.MAX_VALUE;
+		
+		int cost = 0;
+		
+		if(ApplicationControl.NonMonotonic) {
+			//system-3, system-4
+			//NM_LA
+			if(s.getUnshift(s.getStack().peekLast().getID())) {
 				for(Word w : s.getBuffer()) {
-					if(w==s.getBuffer().peekFirst()) 
-						continue;
-					
-					if(s.getBuffer().peekFirst().getHead()==w.getID()) {
-						cost--;
+					if(s.getStack().peekLast().getHead()==w.getID()) {
+						cost++;
 						break;
 					}
 				}
-				for(Word w : s.getStack()) {
-					if(w==s.getStack().peekLast())
-						continue;
-					
-					if(s.getHeads()[w.getID()]!=-1 && w.getHead()==s.getBuffer().peekFirst().getID())
-						cost++;
-				}
-				//NM_RE = 0
-				
-				//system-4 Unshift = 0
 			}
-			
-			if(cost<0)
-				cost=0;
-			return cost;
+			//NM_RE = 0
+			//Unshift = 0
 		}
 		
-		private static int costUnshift(State s) {
-			if(!legalUnshift(s))
-				return Integer.MAX_VALUE;
+		return cost;
+	}
+	
+	private static int costShift(State s) {
+		if(!legalShift(s))
+			return Integer.MAX_VALUE;
+		
+		int cost = 0;
+		
+		//system-1
+		for(Word w : s.getStack()) {
+			if(s.getBuffer().peekFirst().getHead()==w.getID())
+				cost++;
 			
-			return costReduce(s);
+			if(w.getHead()==s.getBuffer().peekFirst().getID() && s.getHeads()[w.getID()]==-1)
+				cost++;
 		}
 		
-		private static int costShift(State s) {
-			if(!legalShift(s))
-				return Integer.MAX_VALUE;
-			
-			int cost = 0;
-			
-			//system-1
+		if(ApplicationControl.NonMonotonic) {
+			//system-3
+			//NM_LA
 			for(Word w : s.getStack()) {
-				if(s.getBuffer().peekFirst().getHead()==w.getID())
-					cost++;
-				
-				if(w.getHead()==s.getBuffer().peekFirst().getID() && s.getHeads()[w.getID()]==-1)
+				if(s.getHeads()[w.getID()]!=-1 && w.getHead()==s.getBuffer().peekFirst().getID())
 					cost++;
 			}
-			
-			if(ApplicationControl.NonMonotonic) {
-				//system-3
-				//NM_LA
-				for(Word w : s.getStack()) {
-					if(s.getHeads()[w.getID()]!=-1 && w.getHead()==s.getBuffer().peekFirst().getID())
-						cost++;
-				}
-				//NM_RE
-				if(s.getBuffer().peekFirst().getHead()==s.getStack().peekLast().getID())
-					cost--;
-			}
-			
-			//system-4 Unshift = 0
-			
-			if(cost<0)
-				cost=0;
-			return cost;
+			//NM_RE
+			if(s.getBuffer().peekFirst().getHead()==s.getStack().peekLast().getID())
+				cost--;
 		}
+		
+		//system-4 Unshift = 0
+		
+		if(cost<0)
+			cost=0;
+		return cost;
+	}
 	
 	//legal check for each transitions
 	private static boolean legalLeftArc(State s) {
@@ -947,15 +949,15 @@ public class ArcEagerOnlineDecoder {
 	}
 	
 	private static boolean legalReduce(State s) {
-		//system-1, system-3
+		//system-1, system-3, system-4-(reduce+unshift)
 		if(s.getStack().size()<=1)
 			return false;
 		//system-1
 		if(!ApplicationControl.NonMonotonic && s.getHeads()[s.getStack().peekLast().getID()]==-1)
 			return false;
 		
-		//system-4
-		if(ApplicationControl.NonMonotonic && useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1)
+		//system-5
+		if(ApplicationControl.SingleClassReUs && useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1)
 			return false;
 		
 		return true;
@@ -970,7 +972,7 @@ public class ArcEagerOnlineDecoder {
 		if(!useUnshift)
 			return false;
 		
-		//system-4
+		//system-5
 		if(s.getStack().size()<=1)
 			return false;
 		if(s.getHeads()[s.getStack().peekLast().getID()]!=-1)
@@ -1012,11 +1014,12 @@ public class ArcEagerOnlineDecoder {
 	
 	public static void enableUnshift() {
 		useUnshift=true;
-		if(ApplicationControl.NonMonotonic) {
+		if(!ApplicationControl.SingleClassReUs) {
 			//system-4-unshift
 			nLabel=4;
 		}
 		else {
+			//system-5
 			nLabel=5;
 		}
 	}

@@ -41,6 +41,7 @@ public class ApplicationControl {
 	public static boolean OnlineDynamicPerceptron=false;  //use ArcEagerOnline for decoder, supporting Dynamic Oracle
 	public static boolean UnshiftEnabled=false;  //use ArcEagerOnline for decoder, supporting Unshift & Dynamic Oracle
 	public static boolean NonMonotonic=false;  //true to use Non-Monotonic transitions
+	public static boolean SingleClassReUs=false;  //true to assign same class for unshift and reduce
 	public static int AfterEndSolution = 0;  //select after-end non-terminal solution
 											 //0 - "Ignore", 1 - "All Root", 2 - "All RightArc", 3 - "All LeftArc", 4 - "By Oracle"
 
@@ -70,6 +71,7 @@ public class ApplicationControl {
 		para.addOption("US", "UnshiftEnabled", false, "enable Unshift transition");
 		para.addOption("AES", "AfterEndSolution", true, "Choose the after end solution [1-5]");
 		para.addOption("NM", "NonMonotonic", false, "use Non-Monotonic Transitions");
+		para.addOption("SCRU", "SingleClassReUs", false, "assign same class for Unshift and Reduce");
 		
 		
 		CommandLine cl = parser.parse(para, args);
@@ -149,6 +151,9 @@ public class ApplicationControl {
 		if(cl.hasOption("NM") || cl.hasOption("NonMonotonic"))
 			NonMonotonic=true;
 		
+		if(cl.hasOption("SCRU") || cl.hasOption("SingleClassReUs"))
+			SingleClassReUs=true;
+		
 		if(cl.hasOption("AES")) {
 			AfterEndSolution = Integer.parseInt(cl.getOptionValue("AES"));
 			if(AfterEndSolution<=0 || AfterEndSolution>5)
@@ -181,6 +186,7 @@ public class ApplicationControl {
 		System.out.println("OnlineDynamicPerceptron = "+OnlineDynamicPerceptron);
 		System.out.println("OnlineDynamicUnshiftPerc = "+UnshiftEnabled);
 		System.out.println("NonMonotonic = "+NonMonotonic);
+		System.out.println("SingleClassReUs = "+SingleClassReUs);
 		System.out.println("AfterEndSolution = "+AfterEndSolution);
 		
 		//run the program

@@ -24,7 +24,7 @@ public class GUIThesis implements GUI {
 	public Button filebtn;
 	public Button filebtn2;
 	
-	public static final String[] decoders = {"ArcEager", "ArcEager+NM", "ArcEager+NM+Unshift"};
+	public static final String[] decoders = {"ArcEager", "ArcEager+NM", "ArcEager+NM+Unshift", "ArcEager+SglUnshift"};
 	public static final String[] trainings = {"StaticPerceptron", "DynamicPerceptron"};
 	public static final String[] methods = {"Train", "Dev", "Test"};
 	public static final String[] afterends = {"Ignore", "All Root", "All RightArc", "All LeftArc", "By Oracle"};
@@ -125,6 +125,7 @@ public class GUIThesis implements GUI {
 		System.out.println("OnlineDynamicPerceptron = "+ApplicationControl.OnlineDynamicPerceptron);
 		System.out.println("UnshiftEnabled = "+ApplicationControl.UnshiftEnabled);
 		System.out.println("NonMonotonic = "+ApplicationControl.NonMonotonic);
+		System.out.println("SingleClassReUs = "+ApplicationControl.SingleClassReUs);
 		System.out.println("AfterEndSolution = "+ApplicationControl.AfterEndSolution);
 		System.out.println("filePath = "+filepath);
 		System.out.println("modelPath = "+modelpath);
@@ -142,6 +143,18 @@ public class GUIThesis implements GUI {
 	public void processCombo(String selected) {
 		//deal with combo boxes, change the parameters
 		ApplicationControl.AfterEndSolution=afterend.getSelectedIndex();
+		//if(selected.equals(decoders[3])) {
+		if(selected.equals("ArcEager+SglUnshift")) {
+			ApplicationControl.ArcEagerOnline=true;
+			ApplicationControl.UnshiftEnabled=true;
+			ApplicationControl.OnlineDynamicPerceptron=true;
+			ApplicationControl.OnlineStaticPerceptron=false;
+			ApplicationControl.NonMonotonic=true;
+			ApplicationControl.SingleClassReUs=true;
+			training.setEnabled(false);
+			training.setSelectedIndex(1);
+			return;
+		}
 		//if(selected.equals(decoders[2])) {
 		if(selected.equals("ArcEager+NM+Unshift")) {
 			ApplicationControl.ArcEagerOnline=true;
@@ -149,6 +162,7 @@ public class GUIThesis implements GUI {
 			ApplicationControl.OnlineDynamicPerceptron=true;
 			ApplicationControl.OnlineStaticPerceptron=false;
 			ApplicationControl.NonMonotonic=true;
+			ApplicationControl.SingleClassReUs=false;
 			training.setEnabled(false);
 			training.setSelectedIndex(1);
 			return;
@@ -160,6 +174,7 @@ public class GUIThesis implements GUI {
 			ApplicationControl.OnlineDynamicPerceptron=true;
 			ApplicationControl.OnlineStaticPerceptron=false;
 			ApplicationControl.NonMonotonic=true;
+			ApplicationControl.SingleClassReUs=false;
 			training.setEnabled(false);
 			training.setSelectedIndex(1);
 			return;
@@ -169,6 +184,7 @@ public class GUIThesis implements GUI {
 			ApplicationControl.ArcEagerOnline=true;
 			ApplicationControl.UnshiftEnabled=false;
 			ApplicationControl.NonMonotonic=false;
+			ApplicationControl.SingleClassReUs=false;
 			if(training.getSelectedIndex()==0) {
 				ApplicationControl.OnlineStaticPerceptron=true;
 				ApplicationControl.OnlineDynamicPerceptron=false;
