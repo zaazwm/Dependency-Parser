@@ -14,8 +14,8 @@ public class ComboBoxActionListener implements ActionListener{
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		@SuppressWarnings("rawtypes")
-		JComboBox cb = (JComboBox)e.getSource();
+		@SuppressWarnings("unchecked")
+		JComboBox<String> cb = (JComboBox<String>)e.getSource();
 		String selected = (String)cb.getSelectedItem();
 		gui.processCombo(selected);
 		//System.out.println("ComboBox Selected: "+selected);

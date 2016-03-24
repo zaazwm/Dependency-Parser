@@ -5,21 +5,20 @@ import java.io.OutputStreamWriter;
 
 
 public class Writer {
-	@SuppressWarnings("unused")
 	private String path;
 	private BufferedWriter fw;
 	
-	private static int fieldID=0;
-	private static int fieldForm=1;
-	private static int fieldLemma=2;
-	private static int fieldPos=3;
-	private static int fieldMorph=5;
-	private static int fieldHead=6;
-	private static int fieldRel=7;
+	private static final int fieldID=0;
+	private static final int fieldForm=1;
+	private static final int fieldLemma=2;
+	private static final int fieldPos=3;
+	private static final int fieldMorph=5;
+	private static final int fieldHead=6;
+	private static final int fieldRel=7;
 	
 	public Writer(String path) throws IOException {
 		this.path=path;
-		fw=new BufferedWriter( new OutputStreamWriter(new FileOutputStream(path),"UTF-8"));;
+		fw=new BufferedWriter( new OutputStreamWriter(new FileOutputStream(this.path),"UTF-8"));;
 	}
 	//write sentence to file, with CoNLL06 format
 	public void write(Sentence s) throws IOException {

@@ -9,7 +9,6 @@ import libsvm.svm;
 import libsvm.svm_model;
 import libsvm.svm_node;
 
-@SuppressWarnings("unused")
 public class LibSVM implements Serializable, LibClassifier{
 
 	private static final long serialVersionUID = 5486636784394797294L;
@@ -24,7 +23,9 @@ public class LibSVM implements Serializable, LibClassifier{
 	
 	private Integer nLabel;
 	
+	@SuppressWarnings("unused")
 	private String modelPath;
+	@SuppressWarnings("unused")
 	private String featurePath;
 	private svm_model model;
 	

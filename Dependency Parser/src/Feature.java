@@ -3,22 +3,23 @@ import java.util.Arrays;
 
 public class Feature {
 	//B for buffer, S for stack, <number> for position, f for Form, p for Pos, l for LeftMostPos, r for RightMostPos
+	//ld for leftMostDependent, rd for rightMostDependent, hd for head, hd2 for head of head, d for distance (after bucket)
 	
-	private String B0Form;
-	private String B0Pos;
-	private String S0Form;
-	private String S0Pos;
-	private String B1Form;
-	private String B1Pos;
-	private String S1Pos;
-	private String B2Form;
-	private String B2Pos;
+	private String B0Form;  //original
+	private String B0Pos;  //original
+	private String S0Form;  //original
+	private String S0Pos;  //original
+	private String B1Form;  //original
+	private String B1Pos;  //original
+	private String S1Pos;  //original
+	private String B2Form;  //original
+	private String B2Pos;  //original
 	@SuppressWarnings("unused")
-	private String S2Pos;
-	private String ldB0Pos;
-	private String rdB0Pos;
-	private String ldS0Pos;
-	private String rdS0Pos;
+	private String S2Pos;  //original
+	private String ldB0Pos;  //original
+	private String rdB0Pos;  //original
+	private String ldS0Pos;  //original
+	private String rdS0Pos;  //original
 	private String Label;
 	private int nLabel;
 	private String LabelTag;
@@ -47,7 +48,7 @@ public class Feature {
 	//---
 	private String S0hpS0pB0p;
 	
-	private int distanceS0B0;  //special  //add
+	private int distanceS0B0;  //original
 	private String S0fd;
 	private String S0pd;
 	private String B0fd;
@@ -55,14 +56,14 @@ public class Feature {
 	private String S0fB0fd;
 	private String S0pB0pd;
 	
-	private String hdS0f;  //add
-	private String hdS0p;  //add
-	private String ldS0f;  //add
-	private String rdS0f;  //add
-	private String ldB0f;  //add
+	private String hdS0f;  //original
+	private String hdS0p;  //original
+	private String ldS0f;  //original
+	private String rdS0f;  //original
+	private String ldB0f;  //original
 	
-	private String hd2S0f;  //add
-	private String hd2S0p;  //add
+	private String hd2S0f;  //original
+	private String hd2S0p;  //original
 	private String S0pS0hpS0h2p;
 	
 	//public static final int nFeature = 7;
@@ -96,8 +97,6 @@ public class Feature {
 		Label=label;
 		nLabel=Configuration.getConfToInt(Label);
 		LabelTag = tag;
-		
-		
 		
 		this.composeFeature();
 	}

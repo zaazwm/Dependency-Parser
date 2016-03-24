@@ -188,7 +188,7 @@ public class ApplicationControl {
 		System.out.println("ArcEagerOnline = "+ArcEagerOnline);
 		System.out.println("OnlineStaticPerceptron = "+OnlineStaticPerceptron);
 		System.out.println("OnlineDynamicPerceptron = "+OnlineDynamicPerceptron);
-		System.out.println("OnlineDynamicUnshiftPerc = "+UnshiftEnabled);
+		System.out.println("UnshiftEnabled = "+UnshiftEnabled);
 		System.out.println("NonMonotonic = "+NonMonotonic);
 		System.out.println("SingleClassReUs = "+SingleClassReUs);
 		System.out.println("AfterEndSolution = "+AfterEndSolution);
@@ -645,7 +645,6 @@ public class ApplicationControl {
 		wt.close();
 	}
 	
-	@SuppressWarnings("resource")
 	public static void CompareResult(String dataPath) throws IOException {
 		//compare parsing result with golden label
 		String path;
@@ -684,6 +683,9 @@ public class ApplicationControl {
 			}
 			countfull++;
 		}
+		
+		br.close();
+		brr.close();
 		
 		Double red = ((double)countright*100D/(double)countfull);
 		Double tagred = ((double)counttagright*100D/(double)countfull);

@@ -11,7 +11,7 @@ public class Sentence {
 	
 	@SuppressWarnings("unchecked")
 	public Sentence(LinkedList<Word> wl, boolean t) {
-		wdList=(LinkedList<Word>) wl.clone();
+		wdList=(LinkedList<Word>)wl.clone();
 	}
 
 	public LinkedList<Word> getWdList() {

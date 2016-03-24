@@ -15,7 +15,6 @@ import de.bwaldvogel.liblinear.Problem;
 import de.bwaldvogel.liblinear.SolverType;
 
 
-@SuppressWarnings("unused")
 public class LibLinear implements Serializable, LibClassifier{
 
 	private static final long serialVersionUID = 241399644135265529L;
@@ -30,11 +29,12 @@ public class LibLinear implements Serializable, LibClassifier{
 	
 	private Integer nLabel;
 	
+	@SuppressWarnings("unused")
 	private String modelPath;
+	@SuppressWarnings("unused")
 	private String featurePath;
 	private Model model;
 	
-	@SuppressWarnings("static-access")
 	public LibLinear(LinkedList<Feature> fl, int nLabels, String mPath, String fPath) throws IOException, InvalidInputDataException {
 		feamap = new HashMap<String, Integer>();  //map feature name to uid
 		tagmap = new HashMap<Integer, ArcTag>();  //map arcid to arctag
@@ -92,11 +92,10 @@ public class LibLinear implements Serializable, LibClassifier{
 		}
 		fw.close();
 		
-		model=Linear.train(new Problem().readFromFile(new File(fPath), 0), new Parameter(SolverType.L2R_L2LOSS_SVC, 1.0, 0.01));
+		model=Linear.train(Problem.readFromFile(new File(fPath), 0), new Parameter(SolverType.L2R_L2LOSS_SVC, 1.0, 0.01));
 		model.save(new File(mPath));
 	}
 	
-	@SuppressWarnings("static-access")
 	public LibLinear(LinkedList<TagFeature> tfl, String mPath, String fPath) throws IOException, InvalidInputDataException {
 		//train model for predicting tags
 		feamap = new HashMap<String, Integer>();  //map feature name to uid
@@ -144,7 +143,7 @@ public class LibLinear implements Serializable, LibClassifier{
 		}
 		fw.close();
 		
-		model=Linear.train(new Problem().readFromFile(new File(fPath), 0), new Parameter(SolverType.L2R_L2LOSS_SVC, 1.0, 0.01));
+		model=Linear.train(Problem.readFromFile(new File(fPath), 0), new Parameter(SolverType.L2R_L2LOSS_SVC, 1.0, 0.01));
 		model.save(new File(mPath));
 	}
 	

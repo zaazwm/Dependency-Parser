@@ -8,7 +8,6 @@ import java.util.LinkedList;
 
 import org.apache.commons.lang3.StringUtils;
 
-@SuppressWarnings("unused")
 public class Reader {
 	private String path;
 	private FileInputStream fis;
@@ -17,17 +16,17 @@ public class Reader {
 	
 	private Sentence tst;
 	
-	private static int fieldID=0;
-	private static int fieldForm=1;
-	private static int fieldLemma=2;
-	private static int fieldPos=3;
-	private static int fieldMorph=5;
-	private static int fieldHead=6;
-	private static int fieldRel=7;
+	private static final int fieldID=0;
+	private static final int fieldForm=1;
+	private static final int fieldLemma=2;
+	private static final int fieldPos=3;
+	private static final int fieldMorph=5;
+	private static final int fieldHead=6;
+	private static final int fieldRel=7;
 	
 	public Reader(String path) throws FileNotFoundException, UnsupportedEncodingException {
 		this.path=path;
-		fis=new FileInputStream(path);
+		fis=new FileInputStream(this.path);
 		isr=new InputStreamReader(fis, "UTF-8");
 		br=new BufferedReader(isr);
 	}
@@ -41,6 +40,8 @@ public class Reader {
 			}
 			String[] fields = line.split("\t");
 			fields[fieldID]=fields[fieldID].substring(fields[fieldID].lastIndexOf('_')+1);
+			@SuppressWarnings("unused")
+			String morph=fields[fieldMorph];  //need to parse the content before use
 			if(ApplicationControl.predictArcTag) {
 				//only read id, form, lemma, pos, head information, arc-tag
 				wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],Integer.parseInt(fields[fieldHead]),fields[fieldRel]));

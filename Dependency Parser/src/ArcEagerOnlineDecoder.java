@@ -1,7 +1,6 @@
 import java.util.Arrays;
 import java.util.LinkedList;
 
-@SuppressWarnings("unused")
 public class ArcEagerOnlineDecoder {
 	public static int nLabel = 4;
 	public static final String transition3rdName = "Reduce"; 
@@ -18,6 +17,7 @@ public class ArcEagerOnlineDecoder {
 		
 		State s = new State(st);
 		while(true) {
+			@SuppressWarnings("unused")
 			Configuration conf;
 			int nCorrect = -1;
 			int nPredict = -1;
@@ -583,6 +583,7 @@ public class ArcEagerOnlineDecoder {
 	}
 	
 	//zero-cost check for each transition
+	@SuppressWarnings("unused")
 	@Deprecated
 	private static boolean canReduce(State s) {
 		if(s.getStack().isEmpty())  //nothing to reduce
@@ -616,7 +617,8 @@ public class ArcEagerOnlineDecoder {
 		else
 			return false;
 	}
-
+	
+	@SuppressWarnings("unused")
 	@Deprecated
 	private static boolean canLeftArc(State s) {
 		if(s.getBuffer().isEmpty() || s.getStack().isEmpty())  //nothing to make arc
@@ -655,6 +657,7 @@ public class ArcEagerOnlineDecoder {
 		}
 	}
 	
+	@SuppressWarnings("unused")
 	@Deprecated
 	private static boolean canRightArc(State s) {
 		if(s.getBuffer().isEmpty() || s.getStack().isEmpty())  //nothing to makr arc
@@ -686,6 +689,7 @@ public class ArcEagerOnlineDecoder {
 		}
 	}
 	
+	@SuppressWarnings("unused")
 	@Deprecated
 	private static boolean canUnshift(State s) {
 		if(!useUnshift)
@@ -699,6 +703,7 @@ public class ArcEagerOnlineDecoder {
 		return false;
 	}
 	
+	@SuppressWarnings("unused")
 	@Deprecated
 	private static boolean canShift(State s) {
 		if(s.getBuffer().isEmpty())  //nothing to shift
