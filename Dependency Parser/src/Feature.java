@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Feature {
 	//B for buffer, S for stack, <number> for position, f for Form, p for Pos, l for LeftMostPos, r for RightMostPos
@@ -11,6 +13,7 @@ public class Feature {
 	private String S1Pos;
 	private String B2Form;
 	private String B2Pos;
+	@SuppressWarnings("unused")
 	private String S2Pos;
 	private String ldB0Pos;
 	private String rdB0Pos;
@@ -41,13 +44,31 @@ public class Feature {
 	private String S0pS0lB0p;
 	private String S0pS0rB0p;
 	private String S0pB0pB0l;
+	//---
+	private String S0hpS0pB0p;
 	
+	private int distanceS0B0;  //special  //add
+	private String S0fd;
+	private String S0pd;
+	private String B0fd;
+	private String B0pd;
+	private String S0fB0fd;
+	private String S0pB0pd;
 	
+	private String hdS0f;  //add
+	private String hdS0p;  //add
+	private String ldS0f;  //add
+	private String rdS0f;  //add
+	private String ldB0f;  //add
+	
+	private String hd2S0f;  //add
+	private String hd2S0p;  //add
+	private String S0pS0hpS0h2p;
 	
 	//public static final int nFeature = 7;
-	public static final int nFeature = 6+7+2+6+7+5;
+	public static final int nFeature = 6+7+2+6+7+5+1+6+5+3;
 	
-	public Feature(String b0f, String b0p, String s0f, String s0p, String b1f, String b1p, String s1p, String b2f, String b2p, String s2p, String ldb0p, String rdb0p, String lds0p, String rds0p, String label, String tag) {
+	public Feature(String b0f, String b0p, String s0f, String s0p, String b1f, String b1p, String s1p, String b2f, String b2p, String s2p, String ldb0p, String rdb0p, String lds0p, String rds0p, int dist, String hds0f, String hds0p, String lds0f, String rds0f, String ldb0f, String hd2s0f, String hd2s0p, String label, String tag) {
 		B0Form=b0f;
 		B0Pos=b0p;
 		S0Form=s0f;
@@ -62,14 +83,26 @@ public class Feature {
 		rdB0Pos=rdb0p;
 		ldS0Pos=lds0p;
 		rdS0Pos=rds0p;
+		
+		distanceS0B0=dist;
+		hdS0f=hds0f;
+		hdS0p=hds0p;
+		ldS0f=lds0f;
+		rdS0f=rds0f;
+		ldB0f=ldb0f;
+		hd2S0f=hd2s0f;
+		hd2S0p=hd2s0p;
+		
 		Label=label;
 		nLabel=Configuration.getConfToInt(Label);
 		LabelTag = tag;
 		
+		
+		
 		this.composeFeature();
 	}
 	
-	public Feature(String b0f, String b0p, String s0f, String s0p, String b1f, String b1p, String s1p, String b2f, String b2p, String s2p, String ldb0p, String rdb0p, String lds0p, String rds0p, int label, String tag) {
+	public Feature(String b0f, String b0p, String s0f, String s0p, String b1f, String b1p, String s1p, String b2f, String b2p, String s2p, String ldb0p, String rdb0p, String lds0p, String rds0p, int dist, String hds0f, String hds0p, String lds0f, String rds0f, String ldb0f, String hd2s0f, String hd2s0p, int label, String tag) {
 		B0Form=b0f;
 		B0Pos=b0p;
 		S0Form=s0f;
@@ -84,6 +117,16 @@ public class Feature {
 		rdB0Pos=rdb0p;
 		ldS0Pos=lds0p;
 		rdS0Pos=rds0p;
+		
+		distanceS0B0=dist;
+		hdS0f=hds0f;
+		hdS0p=hds0p;
+		ldS0f=lds0f;
+		rdS0f=rds0f;
+		ldB0f=ldb0f;
+		hd2S0f=hd2s0f;
+		hd2S0p=hd2s0p;
+		
 		nLabel=label;
 		Label=Configuration.getConfToString(nLabel);
 		LabelTag = tag;
@@ -112,6 +155,18 @@ public class Feature {
 		S0pS0lB0p=(ldS0Pos==null?null:(S0Pos+"-"+ldS0Pos+"-"+B0Pos));
 		S0pS0rB0p=(rdS0Pos==null?null:(S0Pos+"-"+rdS0Pos+"-"+B0Pos));
 		S0pB0pB0l=(ldB0Pos==null?null:(S0Pos+"-"+B0Pos+"-"+ldB0Pos));
+		//---
+		S0hpS0pB0p=(hdS0p==null?null:(hdS0p+"-"+S0Pos+"-"+B0Pos));
+		
+		String dist = bucket(distanceS0B0);
+		S0fd=(dist==null?null:(S0Form+"-"+dist));
+		S0pd=(dist==null?null:(S0Pos+"-"+dist));
+		B0fd=(dist==null?null:(B0Form+"-"+dist));
+		B0pd=(dist==null?null:(B0Pos+"-"+dist));
+		S0fB0fd=(dist==null?null:(S0Form+"-"+B0Form+"-"+dist));
+		S0pB0pd=(dist==null?null:(S0Pos+"-"+B0Pos+"-"+dist));
+		
+		S0pS0hpS0h2p=(hd2S0p==null?null:(S0Pos+"-"+hdS0p+"-"+hd2S0p));
 	}
 	
 	public String getValueOf(int index) {
@@ -129,80 +184,116 @@ public class Feature {
 //			return S1Pos;
 //		if(index==6)
 //			return ldB0Pos;
-		
-		if(index==0)
+		switch(index) {
+		case 0:
 			return B0fp;
-		if(index==1)
+		case 1:
 			return S0fp;
-		if(index==2)
+		case 2:
 			return B0pS0p;
-		if(index==3)
+		case 3:
 			return B0fS0f;
-		if(index==4)
+		case 4:
 			return B01p;
-		if(index==5)
+		case 5:
 			return S01p;
 		
-		if(index==6)
+		case 6:
 			return B0fpS0p;
-		if(index==7)
+		case 7:
 			return B0fpS0f;
-		if(index==8)
+		case 8:
 			return B0fS0fp;
-		if(index==9)
+		case 9:
 			return B0pS0fp;
-		if(index==10)
+		case 10:
 			return B0fS0p;
-		if(index==11)
+		case 11:
 			return B0pS0f;
-		if(index==12)
+		case 12:
 			return B0fpS0fp;
 		
-		if(index==13)
+		case 13:
 			return ldB0Pos;
-		if(index==14)
+		case 14:
 			return rdB0Pos;
 		
-		if(index==15)
+		case 15:
 			return B0Form;
-		if(index==16)
+		case 16:
 			return B0Pos;
-		if(index==17)
+		case 17:
 			return S0Form;
-		if(index==18)
+		case 18:
 			return S0Pos;
-		if(index==19)
+		case 19:
 			return B1Pos;
-		if(index==20)
+		case 20:
 			return S1Pos;
 		
-		if(index==21)
+		case 21:
 			return B1fp;
-		if(index==22)
+		case 22:
 			return B1Form;
-		if(index==23)
+		case 23:
 			return B2fp;
-		if(index==24)
+		case 24:
 			return B2Form;
-		if(index==25)
+		case 25:
 			return B2Pos;
-		if(index==26)
+		case 26:
 			return ldS0Pos;
-		if(index==27)
+		case 27:
 			return rdS0Pos;
 		
-		if(index==28)
+		case 28:
 			return B0pB1pB2p;
-		if(index==29)
+		case 29:
 			return S0pB0pB1p;
-		if(index==30)
+		case 30:
 			return S0pS0lB0p;
-		if(index==31)
+		case 31:
 			return S0pS0rB0p;
-		if(index==32)
+		case 32:
 			return S0pB0pB0l;
-		
-		return null;
+			
+		case 33:
+			return S0hpS0pB0p;
+			
+		case 34:
+			return S0fd;
+		case 35:
+			return S0pd;
+		case 36:
+			return B0fd;
+		case 37:
+			return B0pd;
+		case 38:
+			return S0fB0fd;
+		case 39:
+			return S0pB0pd;
+			
+		case 40:
+			return hdS0f;
+		case 41:
+			return hdS0p;
+		case 42:
+			return ldS0f;
+		case 43:
+			return rdS0f;
+		case 44:
+			return ldB0f;
+			
+		case 45:
+			return hd2S0f;
+		case 46:
+			return hd2S0p;
+		case 47:
+			return S0pS0hpS0h2p;
+			
+		default:
+			return null;
+		}
 	}
 	
 	public String getNameOf(int index) {
@@ -220,184 +311,135 @@ public class Feature {
 //			return "S1Pos";
 //		if(index==6)
 //			return "ldB0Pos";
-		
-		if(index==0)
+		switch(index) {
+		case 0:
 			return "B0fp";
-		if(index==1)
+		case 1:
 			return "S0fp";
-		if(index==2)
+		case 2:
 			return "B0pS0p";
-		if(index==3)
+		case 3:
 			return "B0fS0f";
-		if(index==4)
+		case 4:
 			return "B01p";
-		if(index==5)
+		case 5:
 			return "S01p";
 		
-		if(index==6)
+		case 6:
 			return "B0fpS0p";
-		if(index==7)
+		case 7:
 			return "B0fpS0f";
-		if(index==8)
+		case 8:
 			return "B0fS0fp";
-		if(index==9)
+		case 9:
 			return "B0pS0fp";
-		if(index==10)
+		case 10:
 			return "B0fS0p";
-		if(index==11)
+		case 11:
 			return "B0pS0f";
-		if(index==12)
+		case 12:
 			return "B0fpS0fp";
 		
-		if(index==13)
+		case 13:
 			return "ldB0Pos";
-		if(index==14)
+		case 14:
 			return "rdB0Pos";
 		
-		if(index==15)
+		case 15:
 			return "B0Form";
-		if(index==16)
+		case 16:
 			return "B0Pos";
-		if(index==17)
+		case 17:
 			return "S0Form";
-		if(index==18)
+		case 18:
 			return "S0Pos";
-		if(index==19)
+		case 19:
 			return "B1Pos";
-		if(index==20)
+		case 20:
 			return "S1Pos";
 		
-		if(index==21)
+		case 21:
 			return "B1fp";
-		if(index==22)
+		case 22:
 			return "B1Form";
-		if(index==23)
+		case 23:
 			return "B2fp";
-		if(index==24)
+		case 24:
 			return "B2Form";
-		if(index==25)
+		case 25:
 			return "B2Pos";
-		if(index==26)
+		case 26:
 			return "ldS0Pos";
-		if(index==27)
+		case 27:
 			return "rdS0Pos";
 		
-		if(index==28)
+		case 28:
 			return "B0pB1pB2p";
-		if(index==29)
+		case 29:
 			return "S0pB0pB1p";
-		if(index==30)
+		case 30:
 			return "S0pS0lB0p";
-		if(index==31)
+		case 31:
 			return "S0pS0rB0p";
-		if(index==32)
+		case 32:
 			return "S0pB0pB0l";
+			
+		case 33:
+			return "S0hpS0pB0p";
+			
+		case 34:
+			return "S0fd";
+		case 35:
+			return "S0pd";
+		case 36:
+			return "B0fd";
+		case 37:
+			return "B0pd";
+		case 38:
+			return "S0fB0fd";
+		case 39:
+			return "S0pB0pd";
+			
+		case 40:
+			return "hdS0f";
+		case 41:
+			return "hdS0p";
+		case 42:
+			return "ldS0f";
+		case 43:
+			return "rdS0f";
+		case 44:
+			return "ldB0f";
+			
+		case 45:
+			return "hd2S0f";
+		case 46:
+			return "hd2S0p";
+		case 47:
+			return "S0pS0hpS0h2p";
+			
+		default:
+			return null;
+		}
+	}
+	
+	private static final Integer[] fibseed = {1,2};
+	private static ArrayList<Integer> fibarray = new ArrayList<Integer>(Arrays.asList(fibseed));
+	
+	private String bucket(int distance) {
+		if(distance<=0)
+			return null;
+		
+		while(distance>fibarray.get(fibarray.size()-1)) {
+			fibarray.add(fibarray.get(fibarray.size()-1)+fibarray.get(fibarray.size()-2));
+		}
+		
+		for(Integer fib : fibarray) {
+			if(fib>=distance)
+				return fib.toString();
+		}
 		
 		return null;
-	}
-
-	public String getB0Form() {
-		return B0Form;
-	}
-
-	public void setB0Form(String b0Form) {
-		B0Form = b0Form;
-	}
-
-	public String getB0Pos() {
-		return B0Pos;
-	}
-
-	public void setB0Pos(String b0Pos) {
-		B0Pos = b0Pos;
-	}
-
-	public String getS0Form() {
-		return S0Form;
-	}
-
-	public void setS0Form(String s0Form) {
-		S0Form = s0Form;
-	}
-
-	public String getS0Pos() {
-		return S0Pos;
-	}
-
-	public void setS0Pos(String s0Pos) {
-		S0Pos = s0Pos;
-	}
-
-	public String getB1Form() {
-		return B1Form;
-	}
-
-	public void setB1Form(String b1Form) {
-		B1Form = b1Form;
-	}
-
-	public String getB1Pos() {
-		return B1Pos;
-	}
-
-	public void setB1Pos(String b1Pos) {
-		B1Pos = b1Pos;
-	}
-
-	public String getS1Pos() {
-		return S1Pos;
-	}
-
-	public void setS1Pos(String s1Pos) {
-		S1Pos = s1Pos;
-	}
-
-	public String getB2Form() {
-		return B2Form;
-	}
-
-	public void setB2Form(String b2Form) {
-		B2Form = b2Form;
-	}
-
-	public String getB2Pos() {
-		return B2Pos;
-	}
-
-	public void setB2Pos(String b2Pos) {
-		B2Pos = b2Pos;
-	}
-
-	public String getS2Pos() {
-		return S2Pos;
-	}
-
-	public void setS2Pos(String s2Pos) {
-		S2Pos = s2Pos;
-	}
-
-	public String getLdB0Pos() {
-		return ldB0Pos;
-	}
-
-	public void setLdB0Pos(String ldB0Pos) {
-		this.ldB0Pos = ldB0Pos;
-	}
-
-	public String getLdS0Pos() {
-		return ldS0Pos;
-	}
-
-	public void setLdS0Pos(String ldS0Pos) {
-		this.ldS0Pos = ldS0Pos;
-	}
-
-	public String getRdS0Pos() {
-		return rdS0Pos;
-	}
-
-	public void setRdS0Pos(String rdS0Pos) {
-		this.rdS0Pos = rdS0Pos;
 	}
 
 	public String getLabel() {

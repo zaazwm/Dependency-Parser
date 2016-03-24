@@ -1,4 +1,3 @@
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 
@@ -18,7 +17,7 @@ public class ArcEagerOnlineDecoder {
 		sentenceCount[iterationNumber-1]++;
 		
 		State s = new State(st);
-		while(!(s.getBuffer().isEmpty())) {
+		while(true) {
 			Configuration conf;
 			int nCorrect = -1;
 			int nPredict = -1;
@@ -58,6 +57,10 @@ public class ArcEagerOnlineDecoder {
 					}
 				}
 			}
+			
+			//terminal when no legal transition
+			if(nPredict==-1)
+				break;
 			
 			//correct assignment, illegal cost = MAX_INT
 			int[] nlCorrect = new int[nLabel];
@@ -254,7 +257,7 @@ public class ArcEagerOnlineDecoder {
 		//END OF DEBUG
 		
 		State s = new State(st);
-		while(!(s.getBuffer().isEmpty())) {
+		while(true) {
 			//find best legal transition
 			int[] bestTransList = model.findBestList(s.buildFeature(st));
 			int bestTrans = -1;
@@ -291,6 +294,9 @@ public class ArcEagerOnlineDecoder {
 				}
 			}
 			
+			//terminal when no legal transition
+			if(bestTrans==-1)
+				break;
 			
 			if(bestTrans==0) {  //shift
 				//do shift
@@ -550,7 +556,7 @@ public class ArcEagerOnlineDecoder {
 			if(s.getLeftMost()[originalHeadID]==dependentID) {
 				//find leftmost dep
 				s.getLeftMost()[originalHeadID]=-1;
-				for(int i=0;i<s.getHeads().length;i++) {
+				for(int i=0;i<originalHeadID;i++) {
 					if(s.getHeads()[i]==originalHeadID) {
 						s.getLeftMost()[originalHeadID]=i;
 						break;
@@ -560,7 +566,7 @@ public class ArcEagerOnlineDecoder {
 			if(s.getRightMost()[originalHeadID]==dependentID) {
 				//find rightmost dep
 				s.getRightMost()[originalHeadID]=-1;
-				for(int i=s.getHeads().length-1;i>=0;i--) {
+				for(int i=s.getHeads().length-1;i>originalHeadID;i--) {
 					if(s.getHeads()[i]==originalHeadID) {
 						s.getRightMost()[originalHeadID]=i;
 						break;
@@ -569,9 +575,9 @@ public class ArcEagerOnlineDecoder {
 			}
 		}
 		
-		if(s.getLeftMost()[headID]==-1 || s.getLeftMost()[headID]>dependentID)
+		if((s.getLeftMost()[headID]==-1 || s.getLeftMost()[headID]>dependentID) && headID>dependentID)
 			s.getLeftMost()[headID]=dependentID;
-		if(s.getRightMost()[headID]==-1 || s.getRightMost()[headID]<dependentID)
+		if((s.getRightMost()[headID]==-1 || s.getRightMost()[headID]<dependentID) && headID<dependentID)
 			s.getRightMost()[headID]=dependentID;
 		
 	}
@@ -863,19 +869,13 @@ public class ArcEagerOnlineDecoder {
 		
 		int cost = 0;
 		
-		if(ApplicationControl.NonMonotonic) {
-			//system-3, system-4
-			//NM_LA
-			if(s.getUnshift(s.getStack().peekLast().getID())) {
-				for(Word w : s.getBuffer()) {
-					if(s.getStack().peekLast().getHead()==w.getID()) {
-						cost++;
-						break;
-					}
+		if(s.getUnshift(s.getStack().peekLast().getID())) {
+			for(Word w : s.getBuffer()) {
+				if(s.getStack().peekLast().getHead()==w.getID()) {
+					cost++;
+					break;
 				}
 			}
-			//NM_RE = 0
-			//Unshift = 0
 		}
 		
 		return cost;
@@ -908,7 +908,12 @@ public class ArcEagerOnlineDecoder {
 				cost--;
 		}
 		
-		//system-4 Unshift = 0
+		//system-4
+		if(ApplicationControl.NonMonotonic && useUnshift) {
+			//Unshift
+			if(s.getBuffer().peekFirst().getHead()==s.getStack().peekLast().getID())
+				cost++;
+		}
 		
 		if(cost<0)
 			cost=0;

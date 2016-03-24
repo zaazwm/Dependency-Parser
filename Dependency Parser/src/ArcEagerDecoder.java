@@ -20,14 +20,7 @@ public class ArcEagerDecoder {
 				}
 				
 				//add information to state: heads, leftmost, rightmost
-				s.getHeads()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-				if(s.getLeftMost()[s.getBuffer().peekFirst().getID()]==-1 
-						|| s.getLeftMost()[s.getBuffer().peekFirst().getID()]>s.getStack().peekLast().getID())
-					s.getLeftMost()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
-				if(s.getRightMost()[s.getBuffer().peekFirst().getID()]==-1 
-						|| s.getRightMost()[s.getBuffer().peekFirst().getID()]<s.getStack().peekLast().getID())
-					s.getRightMost()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
-				
+				makeArc(s, s.getBuffer().peekFirst().getID(), s.getStack().peekLast().getID());
 				//do leftarc
 				s.getStack().removeLast();
 			}
@@ -43,14 +36,7 @@ public class ArcEagerDecoder {
 				}
 				
 				//add information to state: heads, leftmost, rightmost
-				s.getHeads()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
-				if(s.getLeftMost()[s.getStack().peekLast().getID()]==-1 
-						|| s.getLeftMost()[s.getStack().peekLast().getID()]>s.getBuffer().peekFirst().getID())
-					s.getLeftMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-				if(s.getRightMost()[s.getStack().peekLast().getID()]==-1 
-						|| s.getRightMost()[s.getStack().peekLast().getID()]<s.getBuffer().peekFirst().getID())
-					s.getRightMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-				
+				makeArc(s, s.getStack().peekLast().getID(), s.getBuffer().peekFirst().getID());
 				//do rightarc
 				s.getStack().add(s.getBuffer().removeFirst());
 			}
@@ -86,14 +72,7 @@ public class ArcEagerDecoder {
 				if(!s.getBuffer().isEmpty() && !s.getStack().isEmpty()) {
 					if(!s.getStack().peekLast().getPos().equals("ROOT")) {  //not making dep to root
 							//add information to state: heads, leftmost, rightmost
-							s.getHeads()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-							if(s.getLeftMost()[s.getBuffer().peekFirst().getID()]==-1 
-										|| s.getLeftMost()[s.getBuffer().peekFirst().getID()]>s.getStack().peekLast().getID())
-								s.getLeftMost()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
-							if(s.getRightMost()[s.getBuffer().peekFirst().getID()]==-1 
-									|| s.getRightMost()[s.getBuffer().peekFirst().getID()]<s.getStack().peekLast().getID())
-								s.getRightMost()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
-							
+							makeArc(s, s.getBuffer().peekFirst().getID(), s.getStack().peekLast().getID());
 							//write arc to sentence
 							st.getWdList().get(s.getStack().peekLast().getID()).setHead(s.getBuffer().peekFirst().getID());
 							//do leftarc
@@ -110,14 +89,7 @@ public class ArcEagerDecoder {
 			else if(bestTrans==2) {  //rightArc
 				if(!s.getBuffer().isEmpty() && !s.getStack().isEmpty()) {
 					//add information to state: heads, leftmost, rightmost
-					s.getHeads()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
-					if(s.getLeftMost()[s.getStack().peekLast().getID()]==-1 
-							|| s.getLeftMost()[s.getStack().peekLast().getID()]>s.getBuffer().peekFirst().getID())
-						s.getLeftMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-					if(s.getRightMost()[s.getStack().peekLast().getID()]==-1 
-							|| s.getRightMost()[s.getStack().peekLast().getID()]<s.getBuffer().peekFirst().getID())
-						s.getRightMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-				
+					makeArc(s, s.getStack().peekLast().getID(), s.getBuffer().peekFirst().getID());
 					//write arc to sentence
 					st.getWdList().get(s.getBuffer().peekFirst().getID()).setHead(s.getStack().peekLast().getID());
 					//do rightarc
@@ -154,14 +126,7 @@ public class ArcEagerDecoder {
 				s.getBuffer().add(s.getStack().removeLast());
 				System.out.println("Final: unShift -> RightArc (-> Reduce)");
 				//add information to state: heads, leftmost, rightmost
-				s.getHeads()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
-				if(s.getLeftMost()[s.getStack().peekLast().getID()]==-1 
-						|| s.getLeftMost()[s.getStack().peekLast().getID()]>s.getBuffer().peekFirst().getID())
-					s.getLeftMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-				if(s.getRightMost()[s.getStack().peekLast().getID()]==-1 
-						|| s.getRightMost()[s.getStack().peekLast().getID()]<s.getBuffer().peekFirst().getID())
-					s.getRightMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-			
+				makeArc(s, s.getStack().peekLast().getID(), s.getBuffer().peekFirst().getID());
 				//write arc to sentence
 				st.getWdList().get(s.getBuffer().peekFirst().getID()).setHead(s.getStack().peekLast().getID());
 				//do rightarc
@@ -193,14 +158,7 @@ public class ArcEagerDecoder {
 				if(!s.getBuffer().isEmpty() && !s.getStack().isEmpty()) {
 					if(!s.getStack().peekLast().getPos().equals("ROOT")) {  //not making dep to root
 							//add information to state: heads, leftmost, rightmost
-							s.getHeads()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-							if(s.getLeftMost()[s.getBuffer().peekFirst().getID()]==-1 
-										|| s.getLeftMost()[s.getBuffer().peekFirst().getID()]>s.getStack().peekLast().getID())
-								s.getLeftMost()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
-							if(s.getRightMost()[s.getBuffer().peekFirst().getID()]==-1 
-									|| s.getRightMost()[s.getBuffer().peekFirst().getID()]<s.getStack().peekLast().getID())
-								s.getRightMost()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
-							
+							makeArc(s, s.getBuffer().peekFirst().getID(), s.getStack().peekLast().getID());
 							//write arc to sentence
 							st.getWdList().get(s.getStack().peekLast().getID()).setHead(s.getBuffer().peekFirst().getID());
 							st.getWdList().get(s.getStack().peekLast().getID()).setRel(bestTrans.getTag());
@@ -232,14 +190,7 @@ public class ArcEagerDecoder {
 			else if(bestTrans.getTransition()==2) {  //rightArc
 				if(!s.getBuffer().isEmpty() && !s.getStack().isEmpty()) {
 					//add information to state: heads, leftmost, rightmost
-					s.getHeads()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
-					if(s.getLeftMost()[s.getStack().peekLast().getID()]==-1 
-							|| s.getLeftMost()[s.getStack().peekLast().getID()]>s.getBuffer().peekFirst().getID())
-						s.getLeftMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-					if(s.getRightMost()[s.getStack().peekLast().getID()]==-1 
-							|| s.getRightMost()[s.getStack().peekLast().getID()]<s.getBuffer().peekFirst().getID())
-						s.getRightMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-				
+					makeArc(s, s.getStack().peekLast().getID(), s.getBuffer().peekFirst().getID());
 					//write arc to sentence
 					st.getWdList().get(s.getBuffer().peekFirst().getID()).setHead(s.getStack().peekLast().getID());
 					st.getWdList().get(s.getBuffer().peekFirst().getID()).setRel(bestTrans.getTag());
@@ -284,14 +235,7 @@ public class ArcEagerDecoder {
 				s.getBuffer().add(s.getStack().removeLast());
 				System.out.println("Final: unShift -> RightArc (-> Reduce)");
 				//add information to state: heads, leftmost, rightmost
-				s.getHeads()[s.getBuffer().peekFirst().getID()]=s.getStack().peekLast().getID();
-				if(s.getLeftMost()[s.getStack().peekLast().getID()]==-1 
-						|| s.getLeftMost()[s.getStack().peekLast().getID()]>s.getBuffer().peekFirst().getID())
-					s.getLeftMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-				if(s.getRightMost()[s.getStack().peekLast().getID()]==-1 
-						|| s.getRightMost()[s.getStack().peekLast().getID()]<s.getBuffer().peekFirst().getID())
-					s.getRightMost()[s.getStack().peekLast().getID()]=s.getBuffer().peekFirst().getID();
-			
+				makeArc(s, s.getStack().peekLast().getID(), s.getBuffer().peekFirst().getID());
 				//write arc to sentence
 				st.getWdList().get(s.getBuffer().peekFirst().getID()).setHead(s.getStack().peekLast().getID());
 				//do rightarc
@@ -304,6 +248,19 @@ public class ArcEagerDecoder {
 				break;
 			}
 		}
+	}
+	
+	private static void makeArc(State s, int headID, int dependentID) {
+		if(headID<0 || dependentID<0)
+			return;
+		
+		s.getHeads()[dependentID]=headID;
+		
+		if((s.getLeftMost()[headID]==-1 || s.getLeftMost()[headID]>dependentID) && headID>dependentID)
+			s.getLeftMost()[headID]=dependentID;
+		if((s.getRightMost()[headID]==-1 || s.getRightMost()[headID]<dependentID) && headID<dependentID)
+			s.getRightMost()[headID]=dependentID;
+		
 	}
 
 	private static boolean canReduce(State s) {

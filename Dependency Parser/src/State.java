@@ -83,7 +83,16 @@ public class State {
 		String lds0p = stack.isEmpty()?null:(leftMost[stack.getLast().getID()]==-1?null:stc.getWdList().get(leftMost[stack.getLast().getID()]).getPos());
 		String rds0p = stack.isEmpty()?null:(rightMost[stack.getLast().getID()]==-1?null:stc.getWdList().get(rightMost[stack.getLast().getID()]).getPos());
 		
-		return new Feature(b0f, b0p, s0f, s0p, b1f, b1p, s1p, b2f, b2p, s2p, ldb0p, rdb0p, lds0p, rds0p, -1, null);
+		int dist = buffer.isEmpty()?-1:(Math.abs(stack.getLast().getID()-buffer.getFirst().getID()));
+		String hds0f = heads[stack.getFirst().getID()]==-1?null:stc.getWdList().get(heads[stack.getFirst().getID()]).getPos();
+		String hds0p = heads[stack.getFirst().getID()]==-1?null:stc.getWdList().get(heads[stack.getFirst().getID()]).getForm();
+		String lds0f = stack.isEmpty()?null:(leftMost[stack.getLast().getID()]==-1?null:stc.getWdList().get(leftMost[stack.getLast().getID()]).getForm());
+		String rds0f = stack.isEmpty()?null:(rightMost[stack.getLast().getID()]==-1?null:stc.getWdList().get(rightMost[stack.getLast().getID()]).getForm());
+		String ldb0f = buffer.isEmpty()?null:(leftMost[buffer.getFirst().getID()]==-1?null:stc.getWdList().get(leftMost[buffer.getFirst().getID()]).getForm());
+		String hd2s0f = heads[stack.getFirst().getID()]==-1?null:(heads[heads[stack.getFirst().getID()]]==-1?null:stc.getWdList().get(heads[heads[stack.getFirst().getID()]]).getForm());
+		String hd2s0p = heads[stack.getFirst().getID()]==-1?null:(heads[heads[stack.getFirst().getID()]]==-1?null:stc.getWdList().get(heads[heads[stack.getFirst().getID()]]).getPos());
+		
+		return new Feature(b0f, b0p, s0f, s0p, b1f, b1p, s1p, b2f, b2p, s2p, ldb0p, rdb0p, lds0p, rds0p, dist, hds0f, hds0p, lds0f, rds0f, ldb0f, hd2s0f, hd2s0p, -1, null);
 	}
 
 	public LinkedList<Word> getBuffer() {

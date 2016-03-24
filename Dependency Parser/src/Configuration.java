@@ -8,23 +8,26 @@ public class Configuration {
 	public Configuration(State s, String cf, String tg) {
 		st=s;
 		tag=tg;
-		if(cf.equalsIgnoreCase("Shift")) {
+		switch(cf.toLowerCase()) {
+		case "shift":
 			conf=0;
-		}
-		else if(cf.equalsIgnoreCase("LeftArc")) {
+			break;
+		case "leftarc":
 			conf=1;
-		}
-		else if(cf.equalsIgnoreCase("RightArc")) {
+			break;
+		case "rightarc":
 			conf=2;
-		}
-		else if(cf.equalsIgnoreCase("Reduce") || cf.equalsIgnoreCase("Swap")) {
+			break;
+		case "reduce":
+		case "swap":
 			conf=3;
-		}
-		else if(cf.equalsIgnoreCase("Unshift")){
+			break;
+		case "unshift":
 			conf=4;
-		}
-		else {
+			break;
+		default:
 			conf=5;
+			break;
 		}
 	}
 	
@@ -32,23 +35,26 @@ public class Configuration {
 		st=s;
 		stc=stn;
 		tag=tg;
-		if(cf.equalsIgnoreCase("Shift")) {
+		switch(cf.toLowerCase()) {
+		case "shift":
 			conf=0;
-		}
-		else if(cf.equalsIgnoreCase("LeftArc")) {
+			break;
+		case "leftarc":
 			conf=1;
-		}
-		else if(cf.equalsIgnoreCase("RightArc")) {
+			break;
+		case "rightarc":
 			conf=2;
-		}
-		else if(cf.equalsIgnoreCase("Reduce") || cf.equalsIgnoreCase("Swap")) {
+			break;
+		case "reduce":
+		case "swap":
 			conf=3;
-		}
-		else if(cf.equalsIgnoreCase("Unshift")){
+			break;
+		case "unshift":
 			conf=4;
-		}
-		else {
+			break;
+		default:
 			conf=5;
+			break;
 		}
 	}
 	
@@ -74,8 +80,16 @@ public class Configuration {
 		String lds0p = st.getStack().isEmpty()?null:(st.getLeftMost()[st.getStack().getLast().getID()]==-1?null:stc.getWdList().get(st.getLeftMost()[st.getStack().getLast().getID()]).getPos());
 		String rds0p = st.getStack().isEmpty()?null:(st.getRightMost()[st.getStack().getLast().getID()]==-1?null:stc.getWdList().get(st.getRightMost()[st.getStack().getLast().getID()]).getPos());
 		
+		int dist = st.getBuffer().isEmpty()?-1:(Math.abs(st.getStack().getLast().getID()-st.getBuffer().getFirst().getID()));
+		String hds0f = st.getHeads()[st.getStack().getFirst().getID()]==-1?null:stc.getWdList().get(st.getHeads()[st.getStack().getFirst().getID()]).getPos();
+		String hds0p = st.getHeads()[st.getStack().getFirst().getID()]==-1?null:stc.getWdList().get(st.getHeads()[st.getStack().getFirst().getID()]).getForm();
+		String lds0f = st.getStack().isEmpty()?null:(st.getLeftMost()[st.getStack().getLast().getID()]==-1?null:stc.getWdList().get(st.getLeftMost()[st.getStack().getLast().getID()]).getForm());
+		String rds0f = st.getStack().isEmpty()?null:(st.getRightMost()[st.getStack().getLast().getID()]==-1?null:stc.getWdList().get(st.getRightMost()[st.getStack().getLast().getID()]).getForm());
+		String ldb0f = st.getBuffer().isEmpty()?null:(st.getLeftMost()[st.getBuffer().getFirst().getID()]==-1?null:stc.getWdList().get(st.getLeftMost()[st.getBuffer().getFirst().getID()]).getForm());
+		String hd2s0f = st.getHeads()[st.getStack().getFirst().getID()]==-1?null:(st.getHeads()[st.getHeads()[st.getStack().getFirst().getID()]]==-1?null:stc.getWdList().get(st.getHeads()[st.getHeads()[st.getStack().getFirst().getID()]]).getForm());
+		String hd2s0p = st.getHeads()[st.getStack().getFirst().getID()]==-1?null:(st.getHeads()[st.getHeads()[st.getStack().getFirst().getID()]]==-1?null:stc.getWdList().get(st.getHeads()[st.getHeads()[st.getStack().getFirst().getID()]]).getPos());
 		
-		return new Feature(b0f, b0p, s0f, s0p, b1f, b1p, s1p, b2f, b2p, s2p, ldb0p, rdb0p, lds0p, rds0p, conf, tag);
+		return new Feature(b0f, b0p, s0f, s0p, b1f, b1p, s1p, b2f, b2p, s2p, ldb0p, rdb0p, lds0p, rds0p, dist, hds0f, hds0p, lds0f, rds0f, ldb0f, hd2s0f, hd2s0p, conf, tag);
 	}
 	
 	public State getState() {
@@ -91,54 +105,58 @@ public class Configuration {
 	}
 	
 	public String getConfToString() {
-		if(conf==0) 
+		switch(conf) {
+		case 0:
 			return "Shift";
-		if(conf==1)
+		case 1:
 			return "LeftArc";
-		if(conf==2)
+		case 2:
 			return "RightArc";
-		if(conf==3)
+		case 3:
 			return "Reduce-Swap";
-		if(conf==4)
+		case 4:
 			return "Unshift";
-		if(conf==5)
+		case 5:
 			return "Unknown";
-		return "Error";
+		default:
+			return "Error";
+		}
 	}
 	
 	public static String getConfToString(int cf) {
-		if(cf==0) 
+		switch(cf) {
+		case 0:
 			return "Shift";
-		if(cf==1)
+		case 1:
 			return "LeftArc";
-		if(cf==2)
+		case 2:
 			return "RightArc";
-		if(cf==3)
+		case 3:
 			return "Reduce-Swap";
-		if(cf==4)
+		case 4:
 			return "Unshift";
-		if(cf==5)
+		case 5:
 			return "Unknown";
-		return "Error";
+		default:
+			return "Error";
+		}
 	}
 	
 	public static int getConfToInt(String cf) {
-		if(cf.equalsIgnoreCase("Shift")) {
+		switch(cf.toLowerCase()) {
+		case "shift":
 			return 0;
-		}
-		else if(cf.equalsIgnoreCase("LeftArc")) {
+		case "leftarc":
 			return 1;
-		}
-		else if(cf.equalsIgnoreCase("RightArc")) {
+		case "rightarc":
 			return 2;
-		}
-		else if(cf.equalsIgnoreCase("Reduce-Swap") || cf.equalsIgnoreCase("Reduce") || cf.equalsIgnoreCase("Swap")) {
+		case "reduce-swap":
+		case "reduce":
+		case "swap":
 			return 3;
-		}
-		else if(cf.equalsIgnoreCase("Unshift")) {
+		case "unshift":
 			return 4;
-		}
-		else {
+		default:
 			return 5;
 		}
 	}

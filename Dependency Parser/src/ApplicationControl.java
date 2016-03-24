@@ -53,6 +53,8 @@ public class ApplicationControl {
 		BasicParser parser = new BasicParser();
 		
 		para.addOption("data", true, "filepath(<arg>) for data");
+		para.addOption("model", true, "filepath(<arg>) for model");
+		para.addOption("modelfile", true, "filepath(<arg>) for model file");
 		para.addOption("test", false, "use for test");
 		para.addOption("train", false, "use for train, <default>");
 		para.addOption("AS", false, "use ArcStandard for decoder");
@@ -133,8 +135,10 @@ public class ApplicationControl {
 			newPredArcTag=true;
 		}
 		
-		if(cl.hasOption("dev"))
+		if(cl.hasOption("dev")) {
+			testMark=true;
 			devMark=true;
+		}
 		
 		if(cl.hasOption("AEO") || cl.hasOption("AEOnline"))
 			ArcEagerOnline=true;
@@ -200,7 +204,7 @@ public class ApplicationControl {
 				}
 				File dpp = new File(dataPath);
 				if(!dpp.exists()) {
-					System.out.println("File not exist!");
+					System.out.println("File: "+dataPath+" not exist!");
 					System.exit(0);
 				}
 				System.out.println("dataPath = "+dataPath);
@@ -209,15 +213,17 @@ public class ApplicationControl {
 			//	System.exit(0);
 			//}
 		}
-		if(!testMark) {
-			TrainModel(dataPath);
-			System.out.println("Training Finished!");
+		String modelPath = null;
+		modelPath = cl.getOptionValue("modelfile");
+		if(modelPath==null) {
+			modelPath = cl.getOptionValue("model");
+			if(modelPath==null)
+				run(dataPath);
+			else
+				run(dataPath, modelPath);
 		}
 		else {
-			TestModel(dataPath);
-			System.out.println("Test Finished!");
-			if(devMark)
-				CompareResult(dataPath);
+			run(dataPath, modelPath, true);
 		}
 	}
 	
