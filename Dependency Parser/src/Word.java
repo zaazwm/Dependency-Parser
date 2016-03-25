@@ -70,6 +70,10 @@ public class Word {
 		_MPCID=-1;
 		_MPChead=-1;
 	}
+	
+	public String toString() {
+		return "[f:"+_form+",i:"+_ID+",h:"+_head+"]";
+	}
 
 	public int getID() {
 		return _ID;

@@ -1,5 +1,6 @@
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.Random;
 
 public class ArcEagerOnlineDecoder {
 	public static int nLabel = 4;
@@ -8,20 +9,28 @@ public class ArcEagerOnlineDecoder {
 	private static int[] sentenceCount = new int[OnlinePerceptron.maxIter];
 	private static boolean useUnshift = false;
 	
+	private static Random rnd = new Random();
+	private static int[] printConfCount = new int[OnlinePerceptron.maxIter];
+	
 	public static void buildConfiguration(Sentence st, OnlinePerceptron model) {
 		buildConfiguration(st, model, 1);
 	}
 	
 	public static void buildConfiguration(Sentence st, OnlinePerceptron model, int iterationNumber) {
 		sentenceCount[iterationNumber-1]++;
-		
+				
 		State s = new State(st);
 		while(true) {
-			@SuppressWarnings("unused")
-			Configuration conf;
+			Configuration conf = null;
 			int nCorrect = -1;
 			int nPredict = -1;
 			int[] nlPredict = model.findBestList(s.buildFeature(st));
+			
+			boolean toPrint=false;
+			if(printConfCount[iterationNumber-1]<10 && rnd.nextDouble()<0.005D) {
+				printConfCount[iterationNumber-1]++;
+				toPrint=true;
+			}
 			
 			//legal check for predict
 			//argmax(p : legal(s))
@@ -137,6 +146,12 @@ public class ArcEagerOnlineDecoder {
 				}
 			}
 			
+			if(toPrint) {
+				for(int i=0;i<nlCorrect.length;i++) {
+					System.out.println("Cost("+Configuration.getConfToString(i)+")="+nlCorrect[i]+"\n");
+				}
+			}
+			
 			for(int i=0;i<nlCorrect.length;i++) {
 				if(nlCorrect[i]==argminCost && argminCost!=Integer.MAX_VALUE)
 					nlCorrect[i]=i;
@@ -185,7 +200,8 @@ public class ArcEagerOnlineDecoder {
 			//perform transition
 			if(nNext==Configuration.getConfToInt("LeftArc")) {
 				//add configuration to list
-				conf = (new Configuration(s.clone(),st,"LeftArc",s.getStack().peekLast().getRel()));
+				if(toPrint)
+					conf = (new Configuration(s.clone(),st,"LeftArc",s.getStack().peekLast().getRel()));
 				
 				//system-1, system-3-overwrite, system-4-overwrite
 				//add information to state: heads, leftmost, rightmost
@@ -196,7 +212,8 @@ public class ArcEagerOnlineDecoder {
 			}
 			else if(nNext==Configuration.getConfToInt("RightArc")) {
 				//add configuration to list
-				conf = (new Configuration(s.clone(),st,"RightArc",s.getBuffer().peekFirst().getRel()));
+				if(toPrint)
+					conf = (new Configuration(s.clone(),st,"RightArc",s.getBuffer().peekFirst().getRel()));
 				
 				//add information to state: heads, leftmost, rightmost
 				makeArc(s, s.getStack().peekLast().getID(), s.getBuffer().peekFirst().getID());
@@ -206,7 +223,8 @@ public class ArcEagerOnlineDecoder {
 			}
 			else if(nNext==Configuration.getConfToInt("Reduce")) {
 				//add configuration to list
-				conf = (new Configuration(s.clone(),st,"Reduce", null));
+				if(toPrint)
+					conf = (new Configuration(s.clone(),st,"Reduce", null));
 				//do reduce
 				if(ApplicationControl.NonMonotonic && !useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
 					//system-3-headless
@@ -217,7 +235,8 @@ public class ArcEagerOnlineDecoder {
 					if(!ApplicationControl.SingleClassReUs && useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
 						//system-4-unshift
 						//add configuration to list
-						conf = (new Configuration(s.clone(),st,"Unshift", null));
+						if(toPrint)
+							conf = (new Configuration(s.clone(),st,"Unshift", null));
 						//do unshift
 						s.getBuffer().add(s.getStack().removeLast());
 					}
@@ -229,13 +248,15 @@ public class ArcEagerOnlineDecoder {
 			}
 			else if(useUnshift && nNext==Configuration.getConfToInt("Unshift")) {
 				//add configuration to list
-				conf = (new Configuration(s.clone(),st,"Unshift", null));
+				if(toPrint)
+					conf = (new Configuration(s.clone(),st,"Unshift", null));
 				//do unshift
 				s.getBuffer().add(s.getStack().removeLast());
 			}
-			else { //shift
+			else if(nNext==Configuration.getConfToInt("Shift")) {
 				//add configuration to list
-				conf = (new Configuration(s.clone(),st,"Shift", null));
+				if(toPrint)
+					conf = (new Configuration(s.clone(),st,"Shift", null));
 				//do shift
 				s.getStack().add(s.getBuffer().removeFirst());
 				
@@ -243,11 +264,23 @@ public class ArcEagerOnlineDecoder {
 				if(ApplicationControl.NonMonotonic && useUnshift)
 					s.setUnshift(s.getStack().peekLast().getID());
 			}
+			else { //should not reach
+				System.out.println("Cannot find perform transition!");
+				if(toPrint)
+					conf = (new Configuration(s.clone(),st,"Unknown", null));
+			}
+			
+			if(toPrint) {
+				System.out.println(conf.toString());
+			}
 			
 		}
 		
-		if(sentenceCount[iterationNumber-1]%1000==0)
+		
+		if(sentenceCount[iterationNumber-1]%1000==0) {
 			System.out.println("Iteration "+iterationNumber+": "+sentenceCount[iterationNumber-1]+" sentences processed");
+			System.out.println("\t"+printConfCount[iterationNumber-1]+" configurations printed");
+		}
 	}
 	
 	public static void doParsing(OnlinePerceptron model, Sentence st) {
@@ -805,7 +838,8 @@ public class ArcEagerOnlineDecoder {
 				for(Word w : s.getStack()) {
 					if(s.getStack().peekLast().getHead()==w.getID())
 						cost++;
-					break;
+					if(w.getHead()==s.getStack().peekLast().getID())
+						cost++;
 				}
 			}
 		}
@@ -860,7 +894,20 @@ public class ArcEagerOnlineDecoder {
 			}
 			//NM_RE = 0
 			
-			//system-4 Unshift = 0
+			//system-4
+			if(ApplicationControl.NonMonotonic && useUnshift) {
+				if(!s.getUnshift(s.getBuffer().peekFirst().getID())) {
+					for(Word w : s.getBuffer()) {
+						if(w==s.getBuffer().peekFirst()) 
+							continue;
+						
+						if(s.getBuffer().peekFirst().getHead()==w.getID()) {
+							cost++;
+							break;
+						}
+					}
+				}
+			}
 		}
 		
 		if(cost<0)
@@ -947,6 +994,7 @@ public class ArcEagerOnlineDecoder {
 		if(s.getBuffer().isEmpty() || s.getStack().isEmpty())
 			return false;
 		
+		//system-4
 		if(s.getHeads()[s.getBuffer().peekFirst().getID()]!=-1)
 			return false;
 		

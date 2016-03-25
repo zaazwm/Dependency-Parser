@@ -1,3 +1,4 @@
+import java.util.Iterator;
 
 public class Configuration {
 	private State st;
@@ -159,6 +160,24 @@ public class Configuration {
 		default:
 			return 5;
 		}
+	}
+	
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		
+		sb.append("conf: "+getConfToString());
+		
+		sb.append("\nstack: ");
+		for(Iterator<Word>it=st.getStack().descendingIterator();it.hasNext();) {
+			Word next = it.next();
+			sb.append(next.toString().substring(0, next.toString().length()-1)+",s:"+st.getHeads()[next.getID()]+"] ");
+		}
+		sb.append("\nbuffer: ");
+		for(Word w : st.getBuffer()) {
+			sb.append(w.toString().substring(0, w.toString().length()-1)+",s:"+st.getHeads()[w.getID()]+"] ");
+		}
+		
+		return sb.toString();
 	}
 
 	public Sentence getStc() {
