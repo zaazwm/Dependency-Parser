@@ -11,6 +11,8 @@ public class ArcEagerOnlineDecoder {
 	
 	private static Random rnd = new Random();
 	private static int[] printConfCount = new int[OnlinePerceptron.maxIter];
+	private static final int maxPrintPerIter = 0;
+	private static final double probPrintPerConf = 0.0001D;
 	
 	public static void buildConfiguration(Sentence st, OnlinePerceptron model) {
 		buildConfiguration(st, model, 1);
@@ -27,7 +29,7 @@ public class ArcEagerOnlineDecoder {
 			int[] nlPredict = model.findBestList(s.buildFeature(st));
 			
 			boolean toPrint=false;
-			if(printConfCount[iterationNumber-1]<10 && rnd.nextDouble()<0.005D) {
+			if(printConfCount[iterationNumber-1]<maxPrintPerIter && rnd.nextDouble()<probPrintPerConf) {
 				printConfCount[iterationNumber-1]++;
 				toPrint=true;
 			}
@@ -148,7 +150,7 @@ public class ArcEagerOnlineDecoder {
 			
 			if(toPrint) {
 				for(int i=0;i<nlCorrect.length;i++) {
-					System.out.println("Cost("+Configuration.getConfToString(i)+")="+nlCorrect[i]+"\n");
+					System.out.println("Cost("+Configuration.getConfToString(i)+")="+(nlCorrect[i]==Integer.MAX_VALUE?"MAX_VALUE":nlCorrect[i]));
 				}
 			}
 			
@@ -271,7 +273,7 @@ public class ArcEagerOnlineDecoder {
 			}
 			
 			if(toPrint) {
-				System.out.println(conf.toString());
+				System.out.println(conf.toString()+"\n");
 			}
 			
 		}
@@ -279,7 +281,8 @@ public class ArcEagerOnlineDecoder {
 		
 		if(sentenceCount[iterationNumber-1]%1000==0) {
 			System.out.println("Iteration "+iterationNumber+": "+sentenceCount[iterationNumber-1]+" sentences processed");
-			System.out.println("\t"+printConfCount[iterationNumber-1]+" configurations printed");
+			if(printConfCount[iterationNumber-1]>0)
+				System.out.println("\t"+printConfCount[iterationNumber-1]+" configurations printed");
 		}
 	}
 	
@@ -829,17 +832,22 @@ public class ArcEagerOnlineDecoder {
 					Word stackTop = s.getStack().removeLast();
 					if(stackTop.getHead()==s.getStack().peekLast().getID())
 						cost++;
-					s.getStack().addLast(stackTop);
+					s.getStack().add(stackTop);
 				}
 			}
 			else {
 				//system-4
-				//Unshift
-				for(Word w : s.getStack()) {
-					if(s.getStack().peekLast().getHead()==w.getID())
-						cost++;
-					if(w.getHead()==s.getStack().peekLast().getID())
-						cost++;
+				//NM_RE+Unshift
+				if(s.getHeads()[s.getStack().peekLast().getID()]==-1) {
+					for(Word w : s.getStack()) {
+						if(w==s.getStack().peekLast())
+							continue;
+						
+						if(s.getStack().peekLast().getHead()==w.getID())
+							cost++;
+						if(w.getHead()==s.getStack().peekLast().getID())
+							cost++;
+					}
 				}
 			}
 		}
@@ -920,7 +928,7 @@ public class ArcEagerOnlineDecoder {
 			return Integer.MAX_VALUE;
 		
 		int cost = 0;
-		
+		//system-5
 		if(s.getUnshift(s.getStack().peekLast().getID())) {
 			for(Word w : s.getBuffer()) {
 				if(s.getStack().peekLast().getHead()==w.getID()) {
@@ -955,16 +963,16 @@ public class ArcEagerOnlineDecoder {
 				if(s.getHeads()[w.getID()]!=-1 && w.getHead()==s.getBuffer().peekFirst().getID())
 					cost++;
 			}
-			//NM_RE
-			if(s.getBuffer().peekFirst().getHead()==s.getStack().peekLast().getID())
-				cost--;
-		}
-		
-		//system-4
-		if(ApplicationControl.NonMonotonic && useUnshift) {
-			//Unshift
-			if(s.getBuffer().peekFirst().getHead()==s.getStack().peekLast().getID())
-				cost++;
+			
+			if(!useUnshift) {
+				//system-3-NM_RE
+				if(s.getBuffer().peekFirst().getHead()==s.getStack().peekLast().getID())
+					cost--;
+			}
+			else {
+				//system-4
+				//delete NM_RE cost delta
+			}
 		}
 		
 		if(cost<0)
@@ -975,9 +983,11 @@ public class ArcEagerOnlineDecoder {
 	//legal check for each transitions
 	private static boolean legalLeftArc(State s) {
 		//system-1, system-3, system-4
+		//|sigma|>1, |beta|>0
 		if(s.getBuffer().isEmpty() || s.getStack().size()<=1)
 			return false;
 		//system-1
+		//!HEAD(s)
 		if(!ApplicationControl.NonMonotonic && s.getHeads()[s.getStack().peekLast().getID()]!=-1)
 			return false;
 		
@@ -991,10 +1001,12 @@ public class ArcEagerOnlineDecoder {
 	
 	private static boolean legalRightArc(State s) {
 		//system-1, system-3, system-4
+		//|sigma|>0, |beta|>0
 		if(s.getBuffer().isEmpty() || s.getStack().isEmpty())
 			return false;
 		
-		//system-4
+		//system-4 (should not reach by system-1 & system-3)
+		//!HEAD(b)
 		if(s.getHeads()[s.getBuffer().peekFirst().getID()]!=-1)
 			return false;
 		
@@ -1008,13 +1020,16 @@ public class ArcEagerOnlineDecoder {
 	
 	private static boolean legalReduce(State s) {
 		//system-1, system-3, system-4-(reduce+unshift)
+		//|sigma|>1
 		if(s.getStack().size()<=1)
 			return false;
 		//system-1
+		//HEAD(s)
 		if(!ApplicationControl.NonMonotonic && s.getHeads()[s.getStack().peekLast().getID()]==-1)
 			return false;
 		
 		//system-5
+		//HEAD(s)
 		if(ApplicationControl.SingleClassReUs && useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1)
 			return false;
 		
@@ -1031,8 +1046,10 @@ public class ArcEagerOnlineDecoder {
 			return false;
 		
 		//system-5
+		//|sigma|>1
 		if(s.getStack().size()<=1)
 			return false;
+		//!HEAD(s)
 		if(s.getHeads()[s.getStack().peekLast().getID()]!=-1)
 			return false;
 		
@@ -1041,10 +1058,13 @@ public class ArcEagerOnlineDecoder {
 	
 	private static boolean legalFinalUnshift(State s) {
 		//system-2
+		//|sigma|>1
 		if(s.getStack().size()<=1)
 			return false;
+		//|beta|>0
 		if(!s.getBuffer().isEmpty())
 			return false;
+		//!HEAD(s)
 		if(s.getHeads()[s.getStack().peekLast().getID()]!=-1)
 			return false;
 		
@@ -1053,10 +1073,12 @@ public class ArcEagerOnlineDecoder {
 	
 	private static boolean legalShift(State s) {
 		//system-1, system-3
+		//|beta|>0
 		if(s.getBuffer().isEmpty())
 			return false;
 		
 		//system-4
+		//S(b)=0
 		if(ApplicationControl.NonMonotonic && useUnshift) {
 			if(s.getUnshift(s.getBuffer().peekFirst().getID()))
 				return false;
