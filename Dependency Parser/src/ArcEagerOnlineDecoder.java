@@ -150,7 +150,7 @@ public class ArcEagerOnlineDecoder {
 					nlCorrect[Configuration.getConfToInt("RightArc")]=costRightArc(s);
 				if(nlCorrect[Configuration.getConfToInt("Reduce")] == 0)
 					nlCorrect[Configuration.getConfToInt("Reduce")]=costReduce(s);
-				if(useUnshift && nlCorrect[Configuration.getConfToInt("Unshift")] == 0) {
+				if(useUnshift) {
 					switch(ApplicationControl.UnshiftCostSwitch) {
 					case 0:
 					case 1:
@@ -161,7 +161,8 @@ public class ArcEagerOnlineDecoder {
 					case 4:
 					case 5:
 						//single class
-						nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
+						if(nlCorrect[Configuration.getConfToInt("Unshift")] == 0)
+							nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
 						break;
 					default:
 						break;
