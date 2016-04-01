@@ -21,7 +21,7 @@ public class GUIThesis implements GUI {
 	public JComboBox<String> training;
 	public JComboBox<String> decoder;
 	public JComboBox<String> method;
-	public JComboBox<String> afterend;
+	public DisabledJComboBox<String> afterend;
 	public JComboBox<String> unshiftcost;
 	public Button filebtn;
 	public Button filebtn2;
@@ -64,7 +64,7 @@ public class GUIThesis implements GUI {
 		decoder = new JComboBox<String>(decoders);
 		training = new JComboBox<String>(trainings);
 		method = new JComboBox<String>(methods);
-		afterend = new JComboBox<String>(afterends);
+		afterend = new DisabledJComboBox<String>(afterends);
 		unshiftcost = new JComboBox<String>(unshiftcosts);
 		decoder.addActionListener(new ComboBoxActionListener(GUIThesis.this));
 		training.addActionListener(new ComboBoxActionListener(GUIThesis.this));
@@ -105,6 +105,10 @@ public class GUIThesis implements GUI {
 		unshiftcost.setSelectedIndex(0);
 		predcb.setState(false);
 		
+		afterend.setIndexEnabled(1, false);
+		afterend.setIndexEnabled(2, false);
+		afterend.setIndexEnabled(3, false);
+		
 		Button runbtn = new Button("Run");
 		runbtn.addActionListener(new RunButtonActionListener(GUIThesis.this));
 		panel.add(runbtn);
@@ -117,6 +121,7 @@ public class GUIThesis implements GUI {
 	
 	@Override
 	public void run() {
+		ApplicationControl.CleanerOutput=false;
 		//run if clicked 'run' button
 		System.out.println("Arguments Readed: ");
 		
