@@ -41,9 +41,12 @@ public class ApplicationControl {
 	public static boolean OnlineDynamicPerceptron=false;  //use ArcEagerOnline for decoder, supporting Dynamic Oracle
 	public static boolean UnshiftEnabled=false;  //use ArcEagerOnline for decoder, supporting Unshift & Dynamic Oracle
 	public static boolean NonMonotonic=false;  //true to use Non-Monotonic transitions
-	public static boolean SingleClassReUs=false;  //true to assign same class for unshift and reduce
+	public static int UnshiftCostSwitch=0;  //select unshift-cost function
+											//0 - "Same Class+Reduce Cost", 1 - "Same Class+Shifted Cost", 2 - "Same Class+Zero Cost"
+											//3 - "Single Class+Reduce Cost", 4 - "Single Class+Shifted Cost", 5 - "Single Class+Zero Cost"
 	public static int AfterEndSolution = 0;  //select after-end non-terminal solution
 											 //0 - "Ignore", 1 - "All Root", 2 - "All RightArc", 3 - "All LeftArc", 4 - "By Oracle"
+	public static boolean CleanerOutput=false;  //true to only print key-contents
 
 	public static void main(String[] args) throws IOException, ClassNotFoundException, InvalidInputDataException, ParseException {
 		//main entry to application
@@ -73,7 +76,8 @@ public class ApplicationControl {
 		para.addOption("US", "UnshiftEnabled", false, "enable Unshift transition");
 		para.addOption("AES", "AfterEndSolution", true, "Choose the after end solution [1-5]");
 		para.addOption("NM", "NonMonotonic", false, "use Non-Monotonic Transitions");
-		para.addOption("SCRU", "SingleClassReUs", false, "assign same class for Unshift and Reduce");
+		para.addOption("UCS", "UnshiftCostSwitch", true, "Choose the cost function for Unshift [1-6]");
+		para.addOption("CO", "CleanerOutput", false, "print cleaner messages");
 		
 		
 		CommandLine cl = parser.parse(para, args);
@@ -155,8 +159,25 @@ public class ApplicationControl {
 		if(cl.hasOption("NM") || cl.hasOption("NonMonotonic"))
 			NonMonotonic=true;
 		
-		if(cl.hasOption("SCRU") || cl.hasOption("SingleClassReUs"))
-			SingleClassReUs=true;
+		if(cl.hasOption("CO") || cl.hasOption("CleanerOutput"))
+			CleanerOutput=true;
+		
+		
+		if(cl.hasOption("UCS")) {
+			UnshiftCostSwitch = Integer.parseInt(cl.getOptionValue("UCS"));
+			if(UnshiftCostSwitch<=0 || UnshiftCostSwitch>6)
+				UnshiftCostSwitch = 0;
+			else
+				UnshiftCostSwitch--;
+		}
+		
+		if(cl.hasOption("UnshiftCostSwitch")) {
+			UnshiftCostSwitch = Integer.parseInt(cl.getOptionValue("UnshiftCostSwitch"));
+			if(UnshiftCostSwitch<=0 || UnshiftCostSwitch>6)
+				UnshiftCostSwitch = 0;
+			else
+				UnshiftCostSwitch--;
+		}
 		
 		if(cl.hasOption("AES")) {
 			AfterEndSolution = Integer.parseInt(cl.getOptionValue("AES"));
@@ -173,26 +194,27 @@ public class ApplicationControl {
 				AfterEndSolution--;
 		}
 		
-		System.out.println("Arguments Readed: ");
-		
-		System.out.println("testMark = "+testMark);
-		System.out.println("ArcStandard = "+ArcStandard);
-		System.out.println("AvePerceptron = "+AvePerceptron);
-		System.out.println("devMark = "+devMark);
-		System.out.println("smallTrainData = "+smallTrainData);
-		System.out.println("modelLibSVM = "+modelLibSVM);
-		System.out.println("modelLibLinear = "+modelLibLinear);
-		System.out.println("predictArcTag = "+predictArcTag);
-		System.out.println("newPredArcTag = "+newPredArcTag);
-		System.out.println("argsReader = "+argsReader);
-		System.out.println("ArcEagerOnline = "+ArcEagerOnline);
-		System.out.println("OnlineStaticPerceptron = "+OnlineStaticPerceptron);
-		System.out.println("OnlineDynamicPerceptron = "+OnlineDynamicPerceptron);
-		System.out.println("UnshiftEnabled = "+UnshiftEnabled);
-		System.out.println("NonMonotonic = "+NonMonotonic);
-		System.out.println("SingleClassReUs = "+SingleClassReUs);
-		System.out.println("AfterEndSolution = "+AfterEndSolution);
-		
+		if(!CleanerOutput) {
+			System.out.println("Arguments Readed: ");
+			
+			System.out.println("testMark = "+testMark);
+			System.out.println("ArcStandard = "+ArcStandard);
+			System.out.println("AvePerceptron = "+AvePerceptron);
+			System.out.println("devMark = "+devMark);
+			System.out.println("smallTrainData = "+smallTrainData);
+			System.out.println("modelLibSVM = "+modelLibSVM);
+			System.out.println("modelLibLinear = "+modelLibLinear);
+			System.out.println("predictArcTag = "+predictArcTag);
+			System.out.println("newPredArcTag = "+newPredArcTag);
+			System.out.println("argsReader = "+argsReader);
+			System.out.println("ArcEagerOnline = "+ArcEagerOnline);
+			System.out.println("OnlineStaticPerceptron = "+OnlineStaticPerceptron);
+			System.out.println("OnlineDynamicPerceptron = "+OnlineDynamicPerceptron);
+			System.out.println("UnshiftEnabled = "+UnshiftEnabled);
+			System.out.println("NonMonotonic = "+NonMonotonic);
+			System.out.println("UnshiftCostSwitch = "+UnshiftCostSwitch);
+			System.out.println("AfterEndSolution = "+AfterEndSolution);
+		}
 		//run the program
 		String dataPath = null;
 		if(argsReader) {
@@ -366,6 +388,12 @@ public class ApplicationControl {
 				}
 			}
 			opc.averageWeights();
+			
+			System.out.println("IterNr #LeftArc #RightArc #Shift #Reduce #Unshift #Total #2N");
+			for(int i=1;i<=OnlinePerceptron.maxIter;i++) {
+				System.out.println("Iter"+i+": "+ArcEagerOnlineDecoder.getAnalysis(i));
+			}
+			
 			ArcEagerOnlineDecoder.resetCounter();
 		}
 		
@@ -636,9 +664,17 @@ public class ApplicationControl {
 			//write parsing result to file
 			wt.write(st);
 			
-			if(count%100==0) {
-				System.out.println(count+" sentences labeled.");
+			if(!CleanerOutput) {
+				if(count%100==0) {
+					System.out.println(count+" sentences labeled.");
+				}
 			}
+		}
+		
+		if(ArcEagerOnline) {
+			System.out.println("Dev #LeftArc #RightArc #Shift #Reduce #Unshift #Total #2N");
+			System.out.println("Dev: "+ArcEagerOnlineDecoder.getAnalysis(1));
+			ArcEagerOnlineDecoder.resetCounter();
 		}
 		
 		rd.close();

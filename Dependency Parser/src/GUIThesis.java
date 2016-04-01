@@ -20,14 +20,17 @@ public class GUIThesis implements GUI {
 	public Checkbox predcb;
 	public JComboBox<String> training;
 	public JComboBox<String> decoder;
+	public JComboBox<String> method;
 	public JComboBox<String> afterend;
+	public JComboBox<String> unshiftcost;
 	public Button filebtn;
 	public Button filebtn2;
 	
-	public static final String[] decoders = {"ArcEager", "ArcEager+NM", "ArcEager+NM+Unshift", "ArcEager+SglUnshift"};
+	public static final String[] decoders = {"ArcEager", "ArcEager+NM", "ArcEager+NM+Unshift"};
 	public static final String[] trainings = {"StaticPerceptron", "DynamicPerceptron"};
 	public static final String[] methods = {"Train", "Dev", "Test"};
 	public static final String[] afterends = {"Ignore", "All Root", "All RightArc", "All LeftArc", "By Oracle"};
+	public static final String[] unshiftcosts = {"Same+Reduce", "Same+Shifted", "Same+Zero", "Single+Reduce", "Single+Shifted", "Single+Zero"};
 
 	public static void main(String[] args) {
 		//main entrance for GUI program
@@ -41,7 +44,7 @@ public class GUIThesis implements GUI {
 		//build the main window
 		mainwindow = new JFrame();
 		mainwindow.setTitle("Dependency Parser");
-		mainwindow.setSize(650, 95);
+		mainwindow.setSize(930, 95);
 		//mainwindow.setLocation(100, 100);
 		mainwindow.setLocationRelativeTo(null);
 		mainwindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -60,20 +63,24 @@ public class GUIThesis implements GUI {
 		
 		decoder = new JComboBox<String>(decoders);
 		training = new JComboBox<String>(trainings);
-		JComboBox<String> method = new JComboBox<String>(methods);
+		method = new JComboBox<String>(methods);
 		afterend = new JComboBox<String>(afterends);
+		unshiftcost = new JComboBox<String>(unshiftcosts);
 		decoder.addActionListener(new ComboBoxActionListener(GUIThesis.this));
 		training.addActionListener(new ComboBoxActionListener(GUIThesis.this));
 		method.addActionListener(new ComboBoxActionListener(GUIThesis.this));
 		afterend.addActionListener(new ComboBoxActionListener(GUIThesis.this));
+		unshiftcost.addActionListener(new ComboBoxActionListener(GUIThesis.this));
 		method.setVisible(true);
 		decoder.setVisible(true);
 		training.setVisible(true);
 		afterend.setVisible(true);
+		unshiftcost.setVisible(true);
 		JLabel dlbl= new JLabel("Decoder");
 		JLabel tlbl= new JLabel("Training Model");
 		JLabel mlbl= new JLabel("Usage");
 		JLabel albl= new JLabel("After End");
+		JLabel ulbl= new JLabel("Unshift Cost");
 		panel.add(mlbl);
 		panel.add(method);
 		panel.add(dlbl);
@@ -82,6 +89,8 @@ public class GUIThesis implements GUI {
 		panel.add(training);
 		panel.add(albl);
 		panel.add(afterend);
+		panel.add(ulbl);
+		panel.add(unshiftcost);
 		
 		predcb = new Checkbox("ArcTags", false);
 		predcb.addItemListener(new CheckBoxItemListener());
@@ -93,6 +102,7 @@ public class GUIThesis implements GUI {
 		training.setSelectedIndex(1);
 		method.setSelectedIndex(0);
 		afterend.setSelectedIndex(0);
+		unshiftcost.setSelectedIndex(0);
 		predcb.setState(false);
 		
 		Button runbtn = new Button("Run");
@@ -125,7 +135,7 @@ public class GUIThesis implements GUI {
 		System.out.println("OnlineDynamicPerceptron = "+ApplicationControl.OnlineDynamicPerceptron);
 		System.out.println("UnshiftEnabled = "+ApplicationControl.UnshiftEnabled);
 		System.out.println("NonMonotonic = "+ApplicationControl.NonMonotonic);
-		System.out.println("SingleClassReUs = "+ApplicationControl.SingleClassReUs);
+		System.out.println("UnshiftCostSwitch = "+ApplicationControl.UnshiftCostSwitch);
 		System.out.println("AfterEndSolution = "+ApplicationControl.AfterEndSolution);
 		System.out.println("filePath = "+filepath);
 		System.out.println("modelPath = "+modelpath);
@@ -143,6 +153,7 @@ public class GUIThesis implements GUI {
 	public void processCombo(String selected) {
 		//deal with combo boxes, change the parameters
 		ApplicationControl.AfterEndSolution=afterend.getSelectedIndex();
+		ApplicationControl.UnshiftCostSwitch=unshiftcost.getSelectedIndex();
 		//if(selected.equals(decoders[3])) {
 		if(selected.equals("ArcEager+SglUnshift")) {
 			ApplicationControl.ArcEagerOnline=true;
@@ -150,9 +161,12 @@ public class GUIThesis implements GUI {
 			ApplicationControl.OnlineDynamicPerceptron=true;
 			ApplicationControl.OnlineStaticPerceptron=false;
 			ApplicationControl.NonMonotonic=true;
-			ApplicationControl.SingleClassReUs=true;
 			training.setEnabled(false);
 			training.setSelectedIndex(1);
+			afterend.setEnabled(false);
+			afterend.setSelectedIndex(0);
+			unshiftcost.setEnabled(true);
+			unshiftcost.setSelectedIndex(3);
 			return;
 		}
 		//if(selected.equals(decoders[2])) {
@@ -162,9 +176,11 @@ public class GUIThesis implements GUI {
 			ApplicationControl.OnlineDynamicPerceptron=true;
 			ApplicationControl.OnlineStaticPerceptron=false;
 			ApplicationControl.NonMonotonic=true;
-			ApplicationControl.SingleClassReUs=false;
 			training.setEnabled(false);
 			training.setSelectedIndex(1);
+			afterend.setEnabled(false);
+			afterend.setSelectedIndex(0);
+			unshiftcost.setEnabled(true);
 			return;
 		}
 		//if(selected.equals(decoders[1])) {
@@ -174,9 +190,11 @@ public class GUIThesis implements GUI {
 			ApplicationControl.OnlineDynamicPerceptron=true;
 			ApplicationControl.OnlineStaticPerceptron=false;
 			ApplicationControl.NonMonotonic=true;
-			ApplicationControl.SingleClassReUs=false;
 			training.setEnabled(false);
 			training.setSelectedIndex(1);
+			afterend.setEnabled(false);
+			afterend.setSelectedIndex(0);
+			unshiftcost.setEnabled(false);
 			return;
 		}
 		//if(selected.equals(decoders[0])) {
@@ -184,7 +202,6 @@ public class GUIThesis implements GUI {
 			ApplicationControl.ArcEagerOnline=true;
 			ApplicationControl.UnshiftEnabled=false;
 			ApplicationControl.NonMonotonic=false;
-			ApplicationControl.SingleClassReUs=false;
 			if(training.getSelectedIndex()==0) {
 				ApplicationControl.OnlineStaticPerceptron=true;
 				ApplicationControl.OnlineDynamicPerceptron=false;
@@ -194,6 +211,11 @@ public class GUIThesis implements GUI {
 				ApplicationControl.OnlineDynamicPerceptron=true;
 			}
 			training.setEnabled(true);
+			if(method.getSelectedIndex()==0)
+				afterend.setEnabled(false);
+			else
+				afterend.setEnabled(true);
+			unshiftcost.setEnabled(false);
 			return;
 		}
 		//if(selected.equals(trainings[0])) {
@@ -230,7 +252,10 @@ public class GUIThesis implements GUI {
 			ApplicationControl.testMark=true;
 			ApplicationControl.argsReader=true;
 			ApplicationControl.devMark=true;
-			afterend.setEnabled(true);
+			if(decoder.getSelectedIndex()==0)
+				afterend.setEnabled(true);
+			else
+				afterend.setEnabled(false);
 			return;
 		}
 		//if(selected.equals(methods[2])) {
@@ -238,7 +263,10 @@ public class GUIThesis implements GUI {
 			ApplicationControl.testMark=true;
 			ApplicationControl.argsReader=true;
 			ApplicationControl.devMark=false;
-			afterend.setEnabled(true);
+			if(decoder.getSelectedIndex()==0)
+				afterend.setEnabled(true);
+			else
+				afterend.setEnabled(false);
 			return;
 		}
 	}

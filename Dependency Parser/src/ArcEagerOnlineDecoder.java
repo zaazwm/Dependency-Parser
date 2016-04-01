@@ -14,12 +14,17 @@ public class ArcEagerOnlineDecoder {
 	private static final int maxPrintPerIter = 0;
 	private static final double probPrintPerConf = 0.0001D;
 	
+	//toPrint
+	private static int[][] printTransitionAnalysis = new int[OnlinePerceptron.maxIter][6];
+	//0:#LeftArc, 1:#RightArc, 2:#Shift, 3:#Reduce, 4:#Unshift, 5:#2N
+	
 	public static void buildConfiguration(Sentence st, OnlinePerceptron model) {
 		buildConfiguration(st, model, 1);
 	}
 	
 	public static void buildConfiguration(Sentence st, OnlinePerceptron model, int iterationNumber) {
 		sentenceCount[iterationNumber-1]++;
+		printTransitionAnalysis[iterationNumber-1][5]+=2*st.getWdList().size();
 				
 		State s = new State(st);
 		while(true) {
@@ -55,8 +60,26 @@ public class ArcEagerOnlineDecoder {
 						break;
 					}
 				}
-				else if(ApplicationControl.SingleClassReUs && useUnshift && p==Configuration.getConfToInt("Unshift")) {
-					if(legalUnshift(s)) {
+				else if(useUnshift && p==Configuration.getConfToInt("Unshift")) {
+					boolean legalUnshift = false;
+					switch(ApplicationControl.UnshiftCostSwitch) {
+					case 0:
+					case 1:
+					case 2:
+						//same class
+						break;
+					case 3:
+					case 4:
+					case 5:
+						//single class
+						if(legalUnshift(s)) {
+							legalUnshift=true;
+						}
+						break;
+					default:
+						break;
+					}
+					if(legalUnshift) {
 						nPredict=p;
 						break;
 					}
@@ -79,8 +102,20 @@ public class ArcEagerOnlineDecoder {
 			nlCorrect[Configuration.getConfToInt("LeftArc")]=costLeftArc(s);
 			nlCorrect[Configuration.getConfToInt("RightArc")]=costRightArc(s);
 			nlCorrect[Configuration.getConfToInt("Reduce")]=costReduce(s);
-			if(ApplicationControl.SingleClassReUs && useUnshift) {
-				nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
+			if(useUnshift) {
+				switch(ApplicationControl.UnshiftCostSwitch) {
+				case 0:
+				case 1:
+				case 2:
+					break;
+				case 3:
+				case 4:
+				case 5:
+					nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
+					break;
+				default:
+					break;
+				}
 			}
 			nlCorrect[Configuration.getConfToInt("Shift")]=costShift(s);
 			
@@ -115,8 +150,22 @@ public class ArcEagerOnlineDecoder {
 					nlCorrect[Configuration.getConfToInt("RightArc")]=costRightArc(s);
 				if(nlCorrect[Configuration.getConfToInt("Reduce")] == 0)
 					nlCorrect[Configuration.getConfToInt("Reduce")]=costReduce(s);
-				if(ApplicationControl.SingleClassReUs && useUnshift && nlCorrect[Configuration.getConfToInt("Unshift")] == 0) {
-					nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
+				if(useUnshift && nlCorrect[Configuration.getConfToInt("Unshift")] == 0) {
+					switch(ApplicationControl.UnshiftCostSwitch) {
+					case 0:
+					case 1:
+					case 2:
+						//same class
+						break;
+					case 3:
+					case 4:
+					case 5:
+						//single class
+						nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
+						break;
+					default:
+						break;
+					}
 				}
 				if(nlCorrect[Configuration.getConfToInt("Shift")] == 0)
 					nlCorrect[Configuration.getConfToInt("Shift")]=costShift(s);
@@ -134,8 +183,22 @@ public class ArcEagerOnlineDecoder {
 					nlCorrect[Configuration.getConfToInt("LeftArc")]=costLeftArc(s);
 					nlCorrect[Configuration.getConfToInt("RightArc")]=costRightArc(s);
 					nlCorrect[Configuration.getConfToInt("Reduce")]=costReduce(s);
-					if(ApplicationControl.SingleClassReUs && useUnshift) {
-						nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
+					if(useUnshift) {
+						switch(ApplicationControl.UnshiftCostSwitch) {
+						case 0:
+						case 1:
+						case 2:
+							//same class
+							break;
+						case 3:
+						case 4:
+						case 5:
+							//single class
+							nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
+							break;
+						default:
+							break;
+						}
 					}
 					nlCorrect[Configuration.getConfToInt("Shift")]=costShift(s);
 					
@@ -204,6 +267,7 @@ public class ArcEagerOnlineDecoder {
 				//add configuration to list
 				if(toPrint)
 					conf = (new Configuration(s.clone(),st,"LeftArc",s.getStack().peekLast().getRel()));
+				printTransitionAnalysis[iterationNumber-1][0]++;
 				
 				//system-1, system-3-overwrite, system-4-overwrite
 				//add information to state: heads, leftmost, rightmost
@@ -216,6 +280,7 @@ public class ArcEagerOnlineDecoder {
 				//add configuration to list
 				if(toPrint)
 					conf = (new Configuration(s.clone(),st,"RightArc",s.getBuffer().peekFirst().getRel()));
+				printTransitionAnalysis[iterationNumber-1][1]++;
 				
 				//add information to state: heads, leftmost, rightmost
 				makeArc(s, s.getStack().peekLast().getID(), s.getBuffer().peekFirst().getID());
@@ -232,18 +297,33 @@ public class ArcEagerOnlineDecoder {
 					//system-3-headless
 					Word topWord = s.getStack().removeLast();
 					makeArc(s, s.getStack().peekLast().getID(), topWord.getID());
+					printTransitionAnalysis[iterationNumber-1][3]++;
 				} 
 				else {
-					if(!ApplicationControl.SingleClassReUs && useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
-						//system-4-unshift
-						//add configuration to list
-						if(toPrint)
-							conf = (new Configuration(s.clone(),st,"Unshift", null));
-						//do unshift
-						s.getBuffer().add(s.getStack().removeLast());
+					if(useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
+						switch(ApplicationControl.UnshiftCostSwitch) {
+						case 0:
+						case 1:
+						case 2:
+							//system-4-unshift
+							//add configuration to list
+							if(toPrint)
+								conf = (new Configuration(s.clone(),st,"Unshift", null));
+							printTransitionAnalysis[iterationNumber-1][4]++;
+							//do unshift
+							s.getBuffer().add(s.getStack().removeLast());
+							break;
+						case 3:
+						case 4:
+						case 5:
+							break;
+						default:
+							break;
+						}
 					}
 					else {
 						//system-1, system-3-other, system-4-reduce
+						printTransitionAnalysis[iterationNumber-1][3]++;
 						s.getStack().removeLast();
 					}
 				}
@@ -252,6 +332,7 @@ public class ArcEagerOnlineDecoder {
 				//add configuration to list
 				if(toPrint)
 					conf = (new Configuration(s.clone(),st,"Unshift", null));
+				printTransitionAnalysis[iterationNumber-1][4]++;
 				//do unshift
 				s.getBuffer().add(s.getStack().removeLast());
 			}
@@ -259,6 +340,7 @@ public class ArcEagerOnlineDecoder {
 				//add configuration to list
 				if(toPrint)
 					conf = (new Configuration(s.clone(),st,"Shift", null));
+				printTransitionAnalysis[iterationNumber-1][2]++;
 				//do shift
 				s.getStack().add(s.getBuffer().removeFirst());
 				
@@ -278,11 +360,12 @@ public class ArcEagerOnlineDecoder {
 			
 		}
 		
-		
-		if(sentenceCount[iterationNumber-1]%1000==0) {
-			System.out.println("Iteration "+iterationNumber+": "+sentenceCount[iterationNumber-1]+" sentences processed");
-			if(printConfCount[iterationNumber-1]>0)
-				System.out.println("\t"+printConfCount[iterationNumber-1]+" configurations printed");
+		if(!ApplicationControl.CleanerOutput) {
+			if(sentenceCount[iterationNumber-1]%1000==0) {
+				System.out.println("Iteration "+iterationNumber+": "+sentenceCount[iterationNumber-1]+" sentences processed");
+				if(printConfCount[iterationNumber-1]>0)
+					System.out.println("\t"+printConfCount[iterationNumber-1]+" configurations printed");
+			}
 		}
 	}
 	
@@ -291,7 +374,7 @@ public class ArcEagerOnlineDecoder {
 //		int transitioncount=0;
 //		ArrayList<String> transitionhistory = new ArrayList<String>();
 		//END OF DEBUG
-		
+		printTransitionAnalysis[0][5]+=2*st.getWdList().size();
 		State s = new State(st);
 		while(true) {
 			//find best legal transition
@@ -335,6 +418,7 @@ public class ArcEagerOnlineDecoder {
 				break;
 			
 			if(bestTrans==0) {  //shift
+				printTransitionAnalysis[0][2]++;
 				//do shift
 				s.getStack().add(s.getBuffer().removeFirst());
 				
@@ -342,6 +426,7 @@ public class ArcEagerOnlineDecoder {
 					s.setUnshift(s.getStack().peekLast().getID());
 			}
 			else if(bestTrans==1) {  //leftArc
+				printTransitionAnalysis[0][0]++;
 				//add information to state: heads, leftmost, rightmost
 				makeArc(s, s.getBuffer().peekFirst().getID(), s.getStack().peekLast().getID());
 				
@@ -351,6 +436,7 @@ public class ArcEagerOnlineDecoder {
 				s.getStack().removeLast();
 			}
 			else if(bestTrans==2) {  //rightArc
+				printTransitionAnalysis[0][1]++;
 				//add information to state: heads, leftmost, rightmost
 				makeArc(s, s.getStack().peekLast().getID(), s.getBuffer().peekFirst().getID());
 			
@@ -362,6 +448,7 @@ public class ArcEagerOnlineDecoder {
 			else if(bestTrans==3) {  //reduce
 				//do reduce
 				if(ApplicationControl.NonMonotonic && !useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
+					printTransitionAnalysis[0][3]++;
 					//system-3-headless
 					Word topWord = s.getStack().removeLast();
 					
@@ -369,17 +456,32 @@ public class ArcEagerOnlineDecoder {
 					st.getWdList().get(topWord.getID()).setHead(s.getStack().peekLast().getID());
 				} 
 				else {
-					if(!ApplicationControl.SingleClassReUs && useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
-						//system-4-unshift
-						s.getBuffer().add(s.getStack().removeLast());
+					if(useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
+						switch(ApplicationControl.UnshiftCostSwitch) {
+						case 0:
+						case 1:
+						case 2:
+							printTransitionAnalysis[0][4]++;
+							//system-4-unshift
+							s.getBuffer().add(s.getStack().removeLast());
+							break;
+						case 3:
+						case 4:
+						case 5:
+							break;
+						default:
+							break;
+						}
 					} 
 					else {
+						printTransitionAnalysis[0][3]++;
 						//system-1, system-3-other, system-4-reduce
 						s.getStack().removeLast();
 					}
 				}
 			}
 			else if(useUnshift && bestTrans==4) {  //unshift
+				printTransitionAnalysis[0][4]++;
 				//do unshift
 				s.getBuffer().add(s.getStack().removeLast());
 			}
@@ -524,6 +626,10 @@ public class ArcEagerOnlineDecoder {
 					if(legalFinalUnshift(s)) {
 						bestTrans=Configuration.getConfToInt("Unshift");
 					}
+					else {  //should not reach
+						System.out.println("no legal transition available");
+						break;
+					}
 				}
 				
 //				System.out.println("Final Steps: "+Configuration.getConfToString(bestTrans));
@@ -577,7 +683,21 @@ public class ArcEagerOnlineDecoder {
 	public static void resetCounter() {
 		for(int i=0;i<sentenceCount.length;i++) {
 			sentenceCount[i]=0;
+			for(int j=0;j<6;j++) {
+				printTransitionAnalysis[i][j]=0;
+			}
 		}
+	}
+	
+	public static String getAnalysis(int iterationNumber) {
+		String analysis = printTransitionAnalysis[iterationNumber-1][0]+" "
+				+printTransitionAnalysis[iterationNumber-1][1]+" "
+				+printTransitionAnalysis[iterationNumber-1][2]+" "
+				+printTransitionAnalysis[iterationNumber-1][3]+" "
+				+printTransitionAnalysis[iterationNumber-1][4]+" "
+				+(printTransitionAnalysis[iterationNumber-1][0]+printTransitionAnalysis[iterationNumber-1][1]+printTransitionAnalysis[iterationNumber-1][2]+printTransitionAnalysis[iterationNumber-1][3]+printTransitionAnalysis[iterationNumber-1][4])+" "
+				+printTransitionAnalysis[iterationNumber-1][5];
+		return analysis;
 	}
 	
 	private static void makeArc(State s, int headID, int dependentID) {
@@ -789,6 +909,54 @@ public class ArcEagerOnlineDecoder {
 				}
 			}
 			//NM_RE = 0
+			//Unshift = ?
+			if(useUnshift && legalUnshift(s)) {
+				switch(ApplicationControl.UnshiftCostSwitch) {
+				case 0:
+					//cost-reduce
+					break;
+				case 1:
+					//shifted
+				case 2:
+					//zero-cost
+					return costUnshift(s);
+				case 3:
+				case 4:
+				case 5:
+					//should not reach
+					return Integer.MAX_VALUE;
+				default:
+					break;
+				}
+			}
+		}
+		
+		return cost;
+	}
+	
+	//cost function for each transition
+	private static int costReduceUnshift(State s) {
+		if(!legalUnshift(s))
+			return Integer.MAX_VALUE;
+		
+		int cost = 0;
+		
+		//system-1
+		for(Word w : s.getBuffer()) {
+			if(w.getHead()==s.getStack().peekLast().getID())
+				cost++;
+		}
+		
+		if(ApplicationControl.NonMonotonic) {
+			//system-3, system-4
+			//NM_LA
+			for(Word w : s.getBuffer()) {
+				if(s.getStack().peekLast().getHead()==w.getID()) {
+					cost++;
+					break;
+				}
+			}
+			//NM_RE = 0
 			//Unshift = 0
 		}
 		
@@ -928,14 +1096,30 @@ public class ArcEagerOnlineDecoder {
 			return Integer.MAX_VALUE;
 		
 		int cost = 0;
-		//system-5
-		if(s.getUnshift(s.getStack().peekLast().getID())) {
-			for(Word w : s.getBuffer()) {
-				if(s.getStack().peekLast().getHead()==w.getID()) {
-					cost++;
-					break;
+		switch(ApplicationControl.UnshiftCostSwitch) {
+		case 0:
+			//should not reach
+			return Integer.MAX_VALUE;
+		case 3:
+			return costReduceUnshift(s);
+		case 1:
+		case 4:
+			//system-5 (shifted)
+			//if(s.getUnshift(s.getStack().peekLast().getID())) {
+				for(Word w : s.getBuffer()) {
+					if(s.getStack().peekLast().getHead()==w.getID()) {
+						cost++;
+						break;
+					}
 				}
-			}
+			//}
+			break;
+		case 2:
+		case 5:
+			//zero-cost
+			break;
+		default:
+			return Integer.MAX_VALUE;
 		}
 		
 		return cost;
@@ -1030,8 +1214,22 @@ public class ArcEagerOnlineDecoder {
 		
 		//system-5
 		//HEAD(s)
-		if(ApplicationControl.SingleClassReUs && useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1)
-			return false;
+		if(useUnshift) {
+			switch(ApplicationControl.UnshiftCostSwitch) {
+			case 0:
+			case 1:
+			case 2:
+				break;
+			case 3:
+			case 4:
+			case 5:
+				if(s.getHeads()[s.getStack().peekLast().getID()]==-1)
+					return false;
+				break;
+			default:
+				break;
+			}
+		}
 		
 		return true;
 	}
@@ -1043,6 +1241,9 @@ public class ArcEagerOnlineDecoder {
 	
 	private static boolean legalUnshift(State s) {
 		if(!useUnshift)
+			return false;
+		
+		if(!ApplicationControl.NonMonotonic)
 			return false;
 		
 		//system-5
@@ -1094,13 +1295,22 @@ public class ArcEagerOnlineDecoder {
 	
 	public static void enableUnshift() {
 		useUnshift=true;
-		if(!ApplicationControl.SingleClassReUs) {
+		switch(ApplicationControl.UnshiftCostSwitch) {
+		case 0:
+		case 1:
+		case 2:
 			//system-4-unshift
 			nLabel=4;
-		}
-		else {
+			break;
+		case 3:
+		case 4:
+		case 5:
 			//system-5
 			nLabel=5;
+			break;
+		default:
+			nLabel=4;
+			break;
 		}
 	}
 	
