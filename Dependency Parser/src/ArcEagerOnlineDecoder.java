@@ -636,10 +636,12 @@ public class ArcEagerOnlineDecoder {
 //				System.out.println("Final Steps: "+Configuration.getConfToString(bestTrans));
 				
 				if(bestTrans==0) {  //shift
+					printTransitionAnalysis[0][2]++;
 					//do shift
 					s.getStack().add(s.getBuffer().removeFirst());
 				}
 				else if(bestTrans==1) {  //leftArc
+					printTransitionAnalysis[0][0]++;
 					//add information to state: heads, leftmost, rightmost
 					makeArc(s, s.getBuffer().peekFirst().getID(), s.getStack().peekLast().getID());
 					
@@ -649,6 +651,7 @@ public class ArcEagerOnlineDecoder {
 					s.getStack().removeLast();
 				}
 				else if(bestTrans==2) {  //rightArc
+					printTransitionAnalysis[0][1]++;
 					//add information to state: heads, leftmost, rightmost
 					makeArc(s, s.getStack().peekLast().getID(), s.getBuffer().peekFirst().getID());
 				
@@ -658,10 +661,12 @@ public class ArcEagerOnlineDecoder {
 					s.getStack().add(s.getBuffer().removeFirst());
 				}
 				else if(bestTrans==3) {  //reduce
+					printTransitionAnalysis[0][3]++;
 					//do reduce
 					s.getStack().removeLast();
 				}
 				else if(bestTrans==4) {  //unshift
+					printTransitionAnalysis[0][4]++;
 					//do unshift
 					s.getBuffer().add(s.getStack().removeLast());
 				}
