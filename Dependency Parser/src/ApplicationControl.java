@@ -382,16 +382,24 @@ public class ApplicationControl {
 		
 		//online training iteration for ArcEagerOnline
 		if(ArcEagerOnline) {
-			for(int i=2;i<=OnlinePerceptron.maxIter;i++) {
-				for(Sentence st : stList) {
-					ArcEagerOnlineDecoder.buildConfiguration(st, opc, i);
+			if(OnlineDynamicPerceptron) {
+				for(int i=2;i<=OnlinePerceptron.maxIter;i++) {
+					for(Sentence st : stList) {
+						ArcEagerOnlineDecoder.buildConfiguration(st, opc, i);
+					}
 				}
 			}
+			
 			opc.averageWeights();
 			
-			System.out.println("IterNr #LeftArc #RightArc #Shift #Reduce #Unshift #Total #2N");
-			for(int i=1;i<=OnlinePerceptron.maxIter;i++) {
-				System.out.println("Iter"+i+": "+ArcEagerOnlineDecoder.getAnalysis(i));
+			String sep = ArcEagerOnlineDecoder.analysisSeparator;
+			System.out.println("IterNr"+sep+"#LeftArc"+sep+"#RightArc"+sep+"#Shift"+sep+"#Reduce"+sep+"#Unshift"+sep+"#Total"+sep+"#2N");
+			if(OnlineDynamicPerceptron) {
+				for(int i=1;i<=OnlinePerceptron.maxIter;i++) {
+					System.out.println("Iter"+i+sep+ArcEagerOnlineDecoder.getAnalysis(i));
+				}
+			} else if(OnlineStaticPerceptron) {
+				System.out.println("Iter1"+sep+ArcEagerOnlineDecoder.getAnalysis(1));
 			}
 			
 			ArcEagerOnlineDecoder.resetCounter();
@@ -672,8 +680,9 @@ public class ApplicationControl {
 		}
 		
 		if(ArcEagerOnline) {
-			System.out.println("Dev #LeftArc #RightArc #Shift #Reduce #Unshift #Total #2N");
-			System.out.println("Dev: "+ArcEagerOnlineDecoder.getAnalysis(1));
+			String sep = ArcEagerOnlineDecoder.analysisSeparator;
+			System.out.println("Dev"+sep+"#LeftArc"+sep+"#RightArc"+sep+"#Shift"+sep+"#Reduce"+sep+"#Unshift"+sep+"#Total"+sep+"#2N");
+			System.out.println("Dev"+sep+ArcEagerOnlineDecoder.getAnalysis(1));
 			ArcEagerOnlineDecoder.resetCounter();
 		}
 		

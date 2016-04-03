@@ -9,12 +9,15 @@ public class ArcEagerOnlineDecoder {
 	private static int[] sentenceCount = new int[OnlinePerceptron.maxIter];
 	private static boolean useUnshift = false;
 	
+	//toPrint transition-details
 	private static Random rnd = new Random();
 	private static int[] printConfCount = new int[OnlinePerceptron.maxIter];
 	private static final int maxPrintPerIter = 0;
 	private static final double probPrintPerConf = 0.0001D;
+	private static final int printBeginIter = 1;
+	private static final int printEndIter = 15;
 	
-	//toPrint
+	//toPrint analysis-counts
 	private static int[][] printTransitionAnalysis = new int[OnlinePerceptron.maxIter][6];
 	//0:#LeftArc, 1:#RightArc, 2:#Shift, 3:#Reduce, 4:#Unshift, 5:#2N
 	
@@ -34,7 +37,8 @@ public class ArcEagerOnlineDecoder {
 			int[] nlPredict = model.findBestList(s.buildFeature(st));
 			
 			boolean toPrint=false;
-			if(printConfCount[iterationNumber-1]<maxPrintPerIter && rnd.nextDouble()<probPrintPerConf) {
+			if(iterationNumber>=printBeginIter && iterationNumber<=printEndIter
+					&& printConfCount[iterationNumber-1]<maxPrintPerIter && rnd.nextDouble()<probPrintPerConf) {
 				printConfCount[iterationNumber-1]++;
 				toPrint=true;
 			}
@@ -107,6 +111,7 @@ public class ArcEagerOnlineDecoder {
 				case 0:
 				case 1:
 				case 2:
+					//same class
 					break;
 				case 3:
 				case 4:
@@ -317,6 +322,8 @@ public class ArcEagerOnlineDecoder {
 						case 3:
 						case 4:
 						case 5:
+							//should not reach
+							System.out.println("Invalid unshift transition operation");
 							break;
 						default:
 							break;
@@ -695,13 +702,15 @@ public class ArcEagerOnlineDecoder {
 		}
 	}
 	
+	public static final String analysisSeparator = "\t";
+	
 	public static String getAnalysis(int iterationNumber) {
-		String analysis = printTransitionAnalysis[iterationNumber-1][0]+" "
-				+printTransitionAnalysis[iterationNumber-1][1]+" "
-				+printTransitionAnalysis[iterationNumber-1][2]+" "
-				+printTransitionAnalysis[iterationNumber-1][3]+" "
-				+printTransitionAnalysis[iterationNumber-1][4]+" "
-				+(printTransitionAnalysis[iterationNumber-1][0]+printTransitionAnalysis[iterationNumber-1][1]+printTransitionAnalysis[iterationNumber-1][2]+printTransitionAnalysis[iterationNumber-1][3]+printTransitionAnalysis[iterationNumber-1][4])+" "
+		String analysis = printTransitionAnalysis[iterationNumber-1][0]+analysisSeparator
+				+printTransitionAnalysis[iterationNumber-1][1]+analysisSeparator
+				+printTransitionAnalysis[iterationNumber-1][2]+analysisSeparator
+				+printTransitionAnalysis[iterationNumber-1][3]+analysisSeparator
+				+printTransitionAnalysis[iterationNumber-1][4]+analysisSeparator
+				+(printTransitionAnalysis[iterationNumber-1][0]+printTransitionAnalysis[iterationNumber-1][1]+printTransitionAnalysis[iterationNumber-1][2]+printTransitionAnalysis[iterationNumber-1][3]+printTransitionAnalysis[iterationNumber-1][4])+analysisSeparator
 				+printTransitionAnalysis[iterationNumber-1][5];
 		return analysis;
 	}
@@ -930,6 +939,7 @@ public class ArcEagerOnlineDecoder {
 				case 4:
 				case 5:
 					//should not reach
+					System.out.println("Invalid unshift cost!");
 					return Integer.MAX_VALUE;
 				default:
 					break;
@@ -1105,6 +1115,7 @@ public class ArcEagerOnlineDecoder {
 		switch(ApplicationControl.UnshiftCostSwitch) {
 		case 0:
 			//should not reach
+			System.out.println("Invalid unshift cost");
 			return Integer.MAX_VALUE;
 		case 3:
 			return costReduceUnshift(s);
