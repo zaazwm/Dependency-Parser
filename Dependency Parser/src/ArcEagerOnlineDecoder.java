@@ -27,7 +27,7 @@ public class ArcEagerOnlineDecoder {
 	
 	public static void buildConfiguration(Sentence st, OnlinePerceptron model, int iterationNumber) {
 		sentenceCount[iterationNumber-1]++;
-		printTransitionAnalysis[iterationNumber-1][5]+=2*st.getWdList().size();
+		printTransitionAnalysis[iterationNumber-1][5]+=2*(st.getWdList().size()-1);
 				
 		State s = new State(st);
 		while(true) {

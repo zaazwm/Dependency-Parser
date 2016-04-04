@@ -382,14 +382,11 @@ public class ApplicationControl {
 		
 		//online training iteration for ArcEagerOnline
 		if(ArcEagerOnline) {
-			if(OnlineDynamicPerceptron) {
-				for(int i=2;i<=OnlinePerceptron.maxIter;i++) {
-					for(Sentence st : stList) {
-						ArcEagerOnlineDecoder.buildConfiguration(st, opc, i);
-					}
+			for(int i=2;i<=OnlinePerceptron.maxIter;i++) {
+				for(Sentence st : stList) {
+					ArcEagerOnlineDecoder.buildConfiguration(st, opc, i);
 				}
 			}
-			
 			opc.averageWeights();
 			
 			String sep = ArcEagerOnlineDecoder.analysisSeparator;
@@ -399,7 +396,7 @@ public class ApplicationControl {
 					System.out.println("Iter"+i+sep+ArcEagerOnlineDecoder.getAnalysis(i));
 				}
 			} else if(OnlineStaticPerceptron) {
-				System.out.println("Iter1"+sep+ArcEagerOnlineDecoder.getAnalysis(1));
+				System.out.println("Iter1-"+OnlinePerceptron.maxIter+sep+ArcEagerOnlineDecoder.getAnalysis(1));
 			}
 			
 			ArcEagerOnlineDecoder.resetCounter();
