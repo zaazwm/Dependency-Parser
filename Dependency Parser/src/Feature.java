@@ -69,6 +69,8 @@ public class Feature {
 	//public static final int nFeature = 7;
 	public static final int nFeature = 6+7+2+6+7+5+1+6+5+3;
 	
+	private static final String sep = "-"; 
+	
 	public Feature(String b0f, String b0p, String s0f, String s0p, String b1f, String b1p, String s1p, String b2f, String b2p, String s2p, String ldb0p, String rdb0p, String lds0p, String rds0p, int dist, String hds0f, String hds0p, String lds0f, String rds0f, String ldb0f, String hd2s0f, String hd2s0p, String label, String tag) {
 		B0Form=b0f;
 		B0Pos=b0p;
@@ -134,38 +136,38 @@ public class Feature {
 	}
 	
 	private void composeFeature() {
-		B0fp=B0Form+"-"+B0Pos;
-		S0fp=S0Form+"-"+S0Pos;
-		B0pS0p=B0Pos+"-"+S0Pos;
-		B0fS0f=B0Form+"-"+S0Form;
-		B01p=(B1Pos==null?null:(B0Pos+"-"+B1Pos));
-		S01p=(S1Pos==null?null:(S0Pos+"-"+S1Pos));
-		B0fpS0p=B0fp+"-"+S0Pos;
-		B0fpS0f=B0fp+"-"+S0Form;
-		B0fS0fp=B0Form+"-"+S0fp;
-		B0pS0fp=B0Pos+"-"+S0fp;
-		B0fS0p=B0Form+"-"+S0Pos;
-		B0pS0f=B0Pos+"-"+S0Form;
-		B0fpS0fp=B0fp+"-"+S0fp;
-		B1fp=(B1Pos==null?null:(B1Form+"-"+B1Pos));
-		B2fp=(B2Pos==null?null:(B2Form+"-"+B2Pos));
-		B0pB1pB2p=((B1Pos==null||B2Pos==null)?null:(B0Pos+"-"+B1Pos+"-"+B2Pos));
-		S0pB0pB1p=(B1Pos==null?null:(S0Pos+"-"+B0Pos+"-"+B1Pos));
-		S0pS0lB0p=(ldS0Pos==null?null:(S0Pos+"-"+ldS0Pos+"-"+B0Pos));
-		S0pS0rB0p=(rdS0Pos==null?null:(S0Pos+"-"+rdS0Pos+"-"+B0Pos));
-		S0pB0pB0l=(ldB0Pos==null?null:(S0Pos+"-"+B0Pos+"-"+ldB0Pos));
+		B0fp=B0Form+sep+B0Pos;
+		S0fp=S0Form+sep+S0Pos;
+		B0pS0p=B0Pos+sep+S0Pos;
+		B0fS0f=B0Form+sep+S0Form;
+		B01p=(B0Pos+sep+B1Pos);
+		S01p=(S0Pos+sep+S1Pos);
+		B0fpS0p=B0fp+sep+S0Pos;
+		B0fpS0f=B0fp+sep+S0Form;
+		B0fS0fp=B0Form+sep+S0fp;
+		B0pS0fp=B0Pos+sep+S0fp;
+		B0fS0p=B0Form+sep+S0Pos;
+		B0pS0f=B0Pos+sep+S0Form;
+		B0fpS0fp=B0fp+sep+S0fp;
+		B1fp=(B1Form+sep+B1Pos);
+		B2fp=(B2Form+sep+B2Pos);
+		B0pB1pB2p=(B0Pos+sep+B1Pos+sep+B2Pos);
+		S0pB0pB1p=(S0Pos+sep+B0Pos+sep+B1Pos);
+		S0pS0lB0p=(S0Pos+sep+ldS0Pos+sep+B0Pos);
+		S0pS0rB0p=(S0Pos+sep+rdS0Pos+sep+B0Pos);
+		S0pB0pB0l=(S0Pos+sep+B0Pos+sep+ldB0Pos);
 		//---
-		S0hpS0pB0p=(hdS0p==null?null:(hdS0p+"-"+S0Pos+"-"+B0Pos));
+		S0hpS0pB0p=(hdS0p+sep+S0Pos+sep+B0Pos);
 		
 		String dist = bucket(distanceS0B0);
-		S0fd=(dist==null?null:(S0Form+"-"+dist));
-		S0pd=(dist==null?null:(S0Pos+"-"+dist));
-		B0fd=(dist==null?null:(B0Form+"-"+dist));
-		B0pd=(dist==null?null:(B0Pos+"-"+dist));
-		S0fB0fd=(dist==null?null:(S0Form+"-"+B0Form+"-"+dist));
-		S0pB0pd=(dist==null?null:(S0Pos+"-"+B0Pos+"-"+dist));
+		S0fd=(S0Form+sep+dist);
+		S0pd=(S0Pos+sep+dist);
+		B0fd=(B0Form+sep+dist);
+		B0pd=(B0Pos+sep+dist);
+		S0fB0fd=(S0Form+sep+B0Form+sep+dist);
+		S0pB0pd=(S0Pos+sep+B0Pos+sep+dist);
 		
-		S0pS0hpS0h2p=(hd2S0p==null?null:(S0Pos+"-"+hdS0p+"-"+hd2S0p));
+		S0pS0hpS0h2p=(S0Pos+sep+hdS0p+sep+hd2S0p);
 	}
 	
 	public String getValueOf(int index) {

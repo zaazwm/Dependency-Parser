@@ -44,7 +44,7 @@ public class StaticPerceptron extends OnlinePerceptron implements Serializable {
 			str[i]=f.getNameOf(i)+"_"+f.getValueOf(i);  //generate name of feature
 		}
 		for(int k=0;k<Feature.nFeature;k++) {
-			if(!feamap.containsKey(str[k]) && f.getValueOf(k)!=null) {
+			if(!feamap.containsKey(str[k])) {
 				feamap.put(str[k], nFeatureFull);
 				nFeatureFull++;
 			}

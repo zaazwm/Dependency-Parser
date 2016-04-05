@@ -121,11 +121,11 @@ public class LibLinear implements Serializable, LibClassifier{
 				str[i]=f.getNameOf(i)+"_"+f.getValueOf(i);  //generate name of feature
 			}
 			for(int k=0;k<TagFeature.nFeature;k++) {
-				if(!feamap.containsKey(str[k]) && f.getValueOf(k)!=null) {
+				if(!feamap.containsKey(str[k])) {
 					feamap.put(str[k], nFeatureFull);
 					nFeatureFull++;
 				}
-				if(feamap.containsKey(str[k]) && f.getValueOf(k)!=null) {
+				if(feamap.containsKey(str[k])) {
 					//fw.write(" "+feamap.get(str[k])+":1.0");
 					fealist.add(feamap.get(str[k]));
 				}

@@ -42,7 +42,7 @@ public class Perceptron implements Serializable{
 			}
 			if(iter==1) {  //map feature to uid, only in first iteration
 				for(int k=0;k<Feature.nFeature;k++) {
-					if(!feamap.containsKey(str[k]) && f.getValueOf(k)!=null) {
+					if(!feamap.containsKey(str[k])) {
 						feamap.put(str[k], nFeatureFull);
 						nFeatureFull++;
 					}
