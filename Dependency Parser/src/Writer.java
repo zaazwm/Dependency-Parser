@@ -18,7 +18,7 @@ public class Writer {
 	
 	public Writer(String path) throws IOException {
 		this.path=path;
-		fw=new BufferedWriter( new OutputStreamWriter(new FileOutputStream(this.path),"UTF-8"));;
+		fw=new BufferedWriter( new OutputStreamWriter(new FileOutputStream(this.path),"UTF-8"));
 	}
 	//write sentence to file, with CoNLL06 format
 	public void write(Sentence s) throws IOException {

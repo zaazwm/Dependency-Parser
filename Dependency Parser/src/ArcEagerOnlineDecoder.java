@@ -1,3 +1,8 @@
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Random;
@@ -18,8 +23,8 @@ public class ArcEagerOnlineDecoder {
 	private static final int printEndIter = 15;
 	
 	//toPrint analysis-counts
-	private static int[][] printTransitionAnalysis = new int[OnlinePerceptron.maxIter][6];
-	//0:#LeftArc, 1:#RightArc, 2:#Shift, 3:#Reduce, 4:#Unshift, 5:#2N
+	private static int[][] printTransitionAnalysis = new int[OnlinePerceptron.maxIter+1][8];
+	//0:#LeftArc(headless), 1:#LeftArc(overwrite) 2:#RightArc(S(B)=0), 3:#RightArc(S(b)=1), 4:#Shift, 5:#Reduce, 6:#Unshift, 7:#2N
 	
 	public static void buildConfiguration(Sentence st, OnlinePerceptron model) {
 		buildConfiguration(st, model, 1);
@@ -27,7 +32,7 @@ public class ArcEagerOnlineDecoder {
 	
 	public static void buildConfiguration(Sentence st, OnlinePerceptron model, int iterationNumber) {
 		sentenceCount[iterationNumber-1]++;
-		printTransitionAnalysis[iterationNumber-1][5]+=2*(st.getWdList().size()-1);
+		printTransitionAnalysis[iterationNumber-1][7]+=2*(st.getWdList().size()-1);
 				
 		State s = new State(st);
 		while(true) {
@@ -273,7 +278,10 @@ public class ArcEagerOnlineDecoder {
 				//add configuration to list
 				if(toPrint)
 					conf = (new Configuration(s.clone(),st,"LeftArc",s.getStack().peekLast().getRel()));
-				printTransitionAnalysis[iterationNumber-1][0]++;
+				if(s.getHeads()[s.getStack().peekLast().getID()]==-1)
+					printTransitionAnalysis[iterationNumber-1][0]++;
+				else
+					printTransitionAnalysis[iterationNumber-1][1]++;
 				
 				//system-1, system-3-overwrite, system-4-overwrite
 				//add information to state: heads, leftmost, rightmost
@@ -286,7 +294,10 @@ public class ArcEagerOnlineDecoder {
 				//add configuration to list
 				if(toPrint)
 					conf = (new Configuration(s.clone(),st,"RightArc",s.getBuffer().peekFirst().getRel()));
-				printTransitionAnalysis[iterationNumber-1][1]++;
+				if(s.getUnshift(s.getBuffer().peekFirst().getID()))
+					printTransitionAnalysis[iterationNumber-1][3]++;
+				else
+					printTransitionAnalysis[iterationNumber-1][2]++;
 				
 				//add information to state: heads, leftmost, rightmost
 				makeArc(s, s.getStack().peekLast().getID(), s.getBuffer().peekFirst().getID());
@@ -303,7 +314,7 @@ public class ArcEagerOnlineDecoder {
 					//system-3-headless
 					Word topWord = s.getStack().removeLast();
 					makeArc(s, s.getStack().peekLast().getID(), topWord.getID());
-					printTransitionAnalysis[iterationNumber-1][3]++;
+					printTransitionAnalysis[iterationNumber-1][5]++;
 				} 
 				else {
 					if(useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
@@ -315,9 +326,9 @@ public class ArcEagerOnlineDecoder {
 							//add configuration to list
 							if(toPrint)
 								conf = (new Configuration(s.clone(),st,"Unshift", null));
-							printTransitionAnalysis[iterationNumber-1][4]++;
+							printTransitionAnalysis[iterationNumber-1][6]++;
 							//do unshift
-							s.getBuffer().add(s.getStack().removeLast());
+							s.getBuffer().addFirst(s.getStack().removeLast());
 							break;
 						case 3:
 						case 4:
@@ -331,7 +342,7 @@ public class ArcEagerOnlineDecoder {
 					}
 					else {
 						//system-1, system-3-other, system-4-reduce
-						printTransitionAnalysis[iterationNumber-1][3]++;
+						printTransitionAnalysis[iterationNumber-1][5]++;
 						s.getStack().removeLast();
 					}
 				}
@@ -340,15 +351,15 @@ public class ArcEagerOnlineDecoder {
 				//add configuration to list
 				if(toPrint)
 					conf = (new Configuration(s.clone(),st,"Unshift", null));
-				printTransitionAnalysis[iterationNumber-1][4]++;
+				printTransitionAnalysis[iterationNumber-1][6]++;
 				//do unshift
-				s.getBuffer().add(s.getStack().removeLast());
+				s.getBuffer().addFirst(s.getStack().removeLast());
 			}
 			else if(nNext==Configuration.getConfToInt("Shift")) {
 				//add configuration to list
 				if(toPrint)
 					conf = (new Configuration(s.clone(),st,"Shift", null));
-				printTransitionAnalysis[iterationNumber-1][2]++;
+				printTransitionAnalysis[iterationNumber-1][4]++;
 				//do shift
 				s.getStack().add(s.getBuffer().removeFirst());
 				
@@ -382,7 +393,8 @@ public class ArcEagerOnlineDecoder {
 //		int transitioncount=0;
 //		ArrayList<String> transitionhistory = new ArrayList<String>();
 		//END OF DEBUG
-		printTransitionAnalysis[0][5]+=2*st.getWdList().size();
+		printTransitionAnalysis[OnlinePerceptron.maxIter][7]+=2*st.getWdList().size();
+		LinkedList<TransitionSequence> transSeq = new LinkedList<TransitionSequence>();
 		State s = new State(st);
 		while(true) {
 			//find best legal transition
@@ -426,7 +438,12 @@ public class ArcEagerOnlineDecoder {
 				break;
 			
 			if(bestTrans==0) {  //shift
-				printTransitionAnalysis[0][2]++;
+				printTransitionAnalysis[OnlinePerceptron.maxIter][4]++;
+				if(ApplicationControl.devAnalysisFile!=null)
+					transSeq.add(new TransitionSequence("SH", 
+						s.getStack().peekLast()==null?"null":s.getStack().peekLast().getPos(), 
+						s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos()));
+				
 				//do shift
 				s.getStack().add(s.getBuffer().removeFirst());
 				
@@ -434,7 +451,15 @@ public class ArcEagerOnlineDecoder {
 					s.setUnshift(s.getStack().peekLast().getID());
 			}
 			else if(bestTrans==1) {  //leftArc
-				printTransitionAnalysis[0][0]++;
+				if(s.getHeads()[s.getStack().peekLast().getID()]==-1)
+					printTransitionAnalysis[OnlinePerceptron.maxIter][0]++;
+				else
+					printTransitionAnalysis[OnlinePerceptron.maxIter][1]++;
+				if(ApplicationControl.devAnalysisFile!=null)
+					transSeq.add(new TransitionSequence("LA", 
+						s.getStack().peekLast()==null?"null":s.getStack().peekLast().getPos(), 
+						s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos()));
+				
 				//add information to state: heads, leftmost, rightmost
 				makeArc(s, s.getBuffer().peekFirst().getID(), s.getStack().peekLast().getID());
 				
@@ -444,7 +469,15 @@ public class ArcEagerOnlineDecoder {
 				s.getStack().removeLast();
 			}
 			else if(bestTrans==2) {  //rightArc
-				printTransitionAnalysis[0][1]++;
+				if(s.getUnshift(s.getBuffer().peekFirst().getID()))
+					printTransitionAnalysis[OnlinePerceptron.maxIter][3]++;
+				else
+					printTransitionAnalysis[OnlinePerceptron.maxIter][2]++;
+				if(ApplicationControl.devAnalysisFile!=null)
+					transSeq.add(new TransitionSequence("RA", 
+						s.getStack().peekLast()==null?"null":s.getStack().peekLast().getPos(), 
+						s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos()));
+				
 				//add information to state: heads, leftmost, rightmost
 				makeArc(s, s.getStack().peekLast().getID(), s.getBuffer().peekFirst().getID());
 			
@@ -456,7 +489,12 @@ public class ArcEagerOnlineDecoder {
 			else if(bestTrans==3) {  //reduce
 				//do reduce
 				if(ApplicationControl.NonMonotonic && !useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
-					printTransitionAnalysis[0][3]++;
+					printTransitionAnalysis[OnlinePerceptron.maxIter][5]++;
+					if(ApplicationControl.devAnalysisFile!=null)
+						transSeq.add(new TransitionSequence("RE", 
+							s.getStack().peekLast()==null?"null":s.getStack().peekLast().getPos(), 
+							s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos()));
+					
 					//system-3-headless
 					Word topWord = s.getStack().removeLast();
 					
@@ -469,9 +507,14 @@ public class ArcEagerOnlineDecoder {
 						case 0:
 						case 1:
 						case 2:
-							printTransitionAnalysis[0][4]++;
+							printTransitionAnalysis[OnlinePerceptron.maxIter][6]++;
+							if(ApplicationControl.devAnalysisFile!=null)
+								transSeq.add(new TransitionSequence("UN", 
+									s.getStack().peekLast()==null?"null":s.getStack().peekLast().getPos(), 
+									s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos()));
+							
 							//system-4-unshift
-							s.getBuffer().add(s.getStack().removeLast());
+							s.getBuffer().addFirst(s.getStack().removeLast());
 							break;
 						case 3:
 						case 4:
@@ -482,16 +525,26 @@ public class ArcEagerOnlineDecoder {
 						}
 					} 
 					else {
-						printTransitionAnalysis[0][3]++;
+						printTransitionAnalysis[OnlinePerceptron.maxIter][5]++;
+						if(ApplicationControl.devAnalysisFile!=null)
+							transSeq.add(new TransitionSequence("RE", 
+								s.getStack().peekLast()==null?"null":s.getStack().peekLast().getPos(), 
+								s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos()));
+						
 						//system-1, system-3-other, system-4-reduce
 						s.getStack().removeLast();
 					}
 				}
 			}
 			else if(useUnshift && bestTrans==4) {  //unshift
-				printTransitionAnalysis[0][4]++;
+				printTransitionAnalysis[OnlinePerceptron.maxIter][6]++;
+				if(ApplicationControl.devAnalysisFile!=null)
+					transSeq.add(new TransitionSequence("UN", 
+						s.getStack().peekLast()==null?"null":s.getStack().peekLast().getPos(), 
+						s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos()));
+				
 				//do unshift
-				s.getBuffer().add(s.getStack().removeLast());
+				s.getBuffer().addFirst(s.getStack().removeLast());
 			}
 			else {
 				try {
@@ -541,7 +594,7 @@ public class ArcEagerOnlineDecoder {
 		else if(ApplicationControl.AfterEndSolution==2) {  //All RightArc
 			while(s.getStack().size()>1) {
 				if(s.getHeads()[s.getStack().peekLast().getID()]==-1 && !s.getStack().peekLast().getPos().equals("ROOT")) {
-					s.getBuffer().add(s.getStack().removeLast());
+					s.getBuffer().addFirst(s.getStack().removeLast());
 					System.out.println("Final: unShift -> RightArc (-> Reduce)");
 					//add information to state: heads, leftmost, rightmost
 					makeArc(s, s.getStack().peekLast().getID(), s.getBuffer().peekFirst().getID());
@@ -561,7 +614,7 @@ public class ArcEagerOnlineDecoder {
 		}
 		else if(ApplicationControl.AfterEndSolution==3) {  //All LeftArc
 			if(s.getStack().size()>1) {
-				s.getBuffer().add(s.getStack().removeLast());
+				s.getBuffer().addFirst(s.getStack().removeLast());
 			}
 			while(s.getStack().size()>1) {
 				if(s.getHeads()[s.getStack().peekLast().getID()]==-1 && !s.getStack().peekLast().getPos().equals("ROOT")) {
@@ -573,11 +626,11 @@ public class ArcEagerOnlineDecoder {
 					st.getWdList().get(s.getStack().peekLast().getID()).setHead(s.getBuffer().peekFirst().getID());
 					//do leftarc
 					s.getBuffer().removeFirst();
-					s.getBuffer().add(s.getStack().removeLast());
+					s.getBuffer().addFirst(s.getStack().removeLast());
 				}
 				else if(s.getStack().peekLast().getHead()!=-1) {
 					s.getBuffer().removeFirst();
-					s.getBuffer().add(s.getStack().removeLast());
+					s.getBuffer().addFirst(s.getStack().removeLast());
 				}
 				else {
 					break;
@@ -643,12 +696,12 @@ public class ArcEagerOnlineDecoder {
 //				System.out.println("Final Steps: "+Configuration.getConfToString(bestTrans));
 				
 				if(bestTrans==0) {  //shift
-					printTransitionAnalysis[0][2]++;
+					printTransitionAnalysis[OnlinePerceptron.maxIter][4]++;
 					//do shift
 					s.getStack().add(s.getBuffer().removeFirst());
 				}
 				else if(bestTrans==1) {  //leftArc
-					printTransitionAnalysis[0][0]++;
+					printTransitionAnalysis[OnlinePerceptron.maxIter][0]++;
 					//add information to state: heads, leftmost, rightmost
 					makeArc(s, s.getBuffer().peekFirst().getID(), s.getStack().peekLast().getID());
 					
@@ -658,7 +711,7 @@ public class ArcEagerOnlineDecoder {
 					s.getStack().removeLast();
 				}
 				else if(bestTrans==2) {  //rightArc
-					printTransitionAnalysis[0][1]++;
+					printTransitionAnalysis[OnlinePerceptron.maxIter][3]++;
 					//add information to state: heads, leftmost, rightmost
 					makeArc(s, s.getStack().peekLast().getID(), s.getBuffer().peekFirst().getID());
 				
@@ -668,14 +721,14 @@ public class ArcEagerOnlineDecoder {
 					s.getStack().add(s.getBuffer().removeFirst());
 				}
 				else if(bestTrans==3) {  //reduce
-					printTransitionAnalysis[0][3]++;
+					printTransitionAnalysis[OnlinePerceptron.maxIter][5]++;
 					//do reduce
 					s.getStack().removeLast();
 				}
 				else if(bestTrans==4) {  //unshift
-					printTransitionAnalysis[0][4]++;
+					printTransitionAnalysis[OnlinePerceptron.maxIter][6]++;
 					//do unshift
-					s.getBuffer().add(s.getStack().removeLast());
+					s.getBuffer().addFirst(s.getStack().removeLast());
 				}
 				else {
 					try {
@@ -688,6 +741,10 @@ public class ArcEagerOnlineDecoder {
 		}
 		else {  //Unknown
 			System.out.println("Unknown After-End Solution!");
+		}
+		
+		if(ApplicationControl.devAnalysisFile!=null) {
+			TransitionSequence.writeDevAnalysis(transSeq);
 		}
 		
 	}
@@ -705,14 +762,15 @@ public class ArcEagerOnlineDecoder {
 	public static final String analysisSeparator = "\t";
 	
 	public static String getAnalysis(int iterationNumber) {
-		String analysis = printTransitionAnalysis[iterationNumber-1][0]+analysisSeparator
-				+printTransitionAnalysis[iterationNumber-1][1]+analysisSeparator
-				+printTransitionAnalysis[iterationNumber-1][2]+analysisSeparator
-				+printTransitionAnalysis[iterationNumber-1][3]+analysisSeparator
-				+printTransitionAnalysis[iterationNumber-1][4]+analysisSeparator
-				+(printTransitionAnalysis[iterationNumber-1][0]+printTransitionAnalysis[iterationNumber-1][1]+printTransitionAnalysis[iterationNumber-1][2]+printTransitionAnalysis[iterationNumber-1][3]+printTransitionAnalysis[iterationNumber-1][4])+analysisSeparator
-				+printTransitionAnalysis[iterationNumber-1][5];
-		return analysis;
+		StringBuilder sb = new StringBuilder();
+		int sum = 0;
+		for(int i=0;i<7;i++) {
+			sb.append(printTransitionAnalysis[iterationNumber-1][i]+analysisSeparator);
+			sum+=printTransitionAnalysis[iterationNumber-1][i];
+		}
+		sb.append(""+sum+analysisSeparator);
+		sb.append(printTransitionAnalysis[iterationNumber-1][7]);
+		return sb.toString();
 	}
 	
 	private static void makeArc(State s, int headID, int dependentID) {
@@ -1363,4 +1421,44 @@ public class ArcEagerOnlineDecoder {
 	}
 
 	
+}
+
+class TransitionSequence {
+	public String trans;
+	public String posS;
+	public String posB;
+	
+	public TransitionSequence(String t, String s, String b) {
+		trans=t;
+		posS=s;
+		posB=b;
+	}
+	
+	public String toString() {
+		return trans+"\t"+posS+"\t"+posB;
+	}
+	
+	public static void writeDevAnalysis(LinkedList<TransitionSequence> list) {
+		if(list.isEmpty())
+			return;
+		
+		try {
+			File file = new File(ApplicationControl.devAnalysisFile);
+			boolean exist = true;
+			if(!file.exists()) {
+				exist=false;
+				file.createNewFile();
+			}
+			BufferedWriter fw=new BufferedWriter( new OutputStreamWriter(new FileOutputStream(file, true),"UTF-8"));
+			if(!exist)
+				fw.write(new TransitionSequence("Trans", "POS(s)", "POS(b)").toString()+"\n\n");
+			for(TransitionSequence ts : list) {
+				fw.write(ts.toString()+"\n");
+			}
+			fw.write("\n");
+			fw.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 }

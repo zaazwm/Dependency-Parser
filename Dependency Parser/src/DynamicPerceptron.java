@@ -13,7 +13,7 @@ public class DynamicPerceptron extends StaticPerceptron implements Serializable 
 	public DynamicPerceptron(int nLabels) {
 		super(nLabels);
 		
-		rnd = new Random();
+		rnd = new Random(serialVersionUID);
 	}
 	
 	@Override

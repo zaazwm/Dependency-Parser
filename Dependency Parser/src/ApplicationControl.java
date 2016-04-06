@@ -48,6 +48,9 @@ public class ApplicationControl {
 											 //0 - "Ignore", 1 - "All Root", 2 - "All RightArc", 3 - "All LeftArc", 4 - "By Oracle"
 	public static boolean CleanerOutput=false;  //true to only print key-contents
 
+	private static String devFileString = null;   //to output learning curve
+	public static String devAnalysisFile = null;  //to store sequence analysis (transition)
+	
 	public static void main(String[] args) throws IOException, ClassNotFoundException, InvalidInputDataException, ParseException {
 		//main entry to application
 		
@@ -78,7 +81,8 @@ public class ApplicationControl {
 		para.addOption("NM", "NonMonotonic", false, "use Non-Monotonic Transitions");
 		para.addOption("UCS", "UnshiftCostSwitch", true, "Choose the cost function for Unshift [1-6]");
 		para.addOption("CO", "CleanerOutput", false, "print cleaner messages");
-		
+		para.addOption("devfile", true, "filepath(<arg>) for dev file");
+		para.addOption("devanalysisfile", true, "filepath(<arg>) for dev analysis file");
 		
 		CommandLine cl = parser.parse(para, args);
 		
@@ -192,6 +196,14 @@ public class ApplicationControl {
 				AfterEndSolution = 0;
 			else
 				AfterEndSolution--;
+		}
+		
+		if(cl.hasOption("devfile")) {
+			devFileString=cl.getOptionValue("devfile");
+		}
+		
+		if(cl.hasOption("devanalysisfile")) {
+			devAnalysisFile=cl.getOptionValue("devanalysisfile");
 		}
 		
 		if(!CleanerOutput) {
@@ -380,17 +392,53 @@ public class ApplicationControl {
 		
 		rd.close();
 		
+		if(ArcEagerOnline && devFileString!=null) {
+			//learning curve
+			Reader devRd = new Reader(devFileString);
+			Writer devWt = new Writer(devFileString+".result");
+			
+			while(devRd.hasNext()) {
+				Sentence st = devRd.readNextTest();
+				ArcEagerOnlineDecoder.doParsing(opc, st);
+				devWt.write(st);
+			}
+			
+			devRd.close();
+			devWt.close();
+			
+			System.out.print("Iter"+1+" ");
+			CompareResultInnerDev(devFileString);
+		}
+		
 		//online training iteration for ArcEagerOnline
 		if(ArcEagerOnline) {
 			for(int i=2;i<=OnlinePerceptron.maxIter;i++) {
 				for(Sentence st : stList) {
 					ArcEagerOnlineDecoder.buildConfiguration(st, opc, i);
 				}
+				
+				if(ArcEagerOnline && devFileString!=null) {
+					//learning curve
+					Reader devRd = new Reader(devFileString);
+					Writer devWt = new Writer(devFileString+".result");
+					
+					while(devRd.hasNext()) {
+						Sentence st = devRd.readNextTest();
+						ArcEagerOnlineDecoder.doParsing(opc, st);
+						devWt.write(st);
+					}
+					
+					devRd.close();
+					devWt.close();
+					
+					System.out.print("Iter"+i+" ");
+					CompareResultInnerDev(devFileString);
+				}
 			}
 			opc.averageWeights();
 			
 			String sep = ArcEagerOnlineDecoder.analysisSeparator;
-			System.out.println("IterNr"+sep+"#LeftArc"+sep+"#RightArc"+sep+"#Shift"+sep+"#Reduce"+sep+"#Unshift"+sep+"#Total"+sep+"#2N");
+			System.out.println("IterNr"+sep+"#LeftArc(headless)"+sep+"#LeftArc(overwrite)"+sep+"#RightArc(S(b)=0)"+sep+"#RightArc(S(b)=1)"+sep+"#Shift"+sep+"#Reduce"+sep+"#Unshift"+sep+"#Total"+sep+"#2N");
 			if(OnlineDynamicPerceptron) {
 				for(int i=1;i<=OnlinePerceptron.maxIter;i++) {
 					System.out.println("Iter"+i+sep+ArcEagerOnlineDecoder.getAnalysis(i));
@@ -678,8 +726,8 @@ public class ApplicationControl {
 		
 		if(ArcEagerOnline) {
 			String sep = ArcEagerOnlineDecoder.analysisSeparator;
-			System.out.println("Dev"+sep+"#LeftArc"+sep+"#RightArc"+sep+"#Shift"+sep+"#Reduce"+sep+"#Unshift"+sep+"#Total"+sep+"#2N");
-			System.out.println("Dev"+sep+ArcEagerOnlineDecoder.getAnalysis(1));
+			System.out.println("IterNr"+sep+"#LeftArc(headless)"+sep+"#LeftArc(overwrite)"+sep+"#RightArc(S(b)=0)"+sep+"#RightArc(S(b)=1)"+sep+"#Shift"+sep+"#Reduce"+sep+"#Unshift"+sep+"#Total"+sep+"#2N");
+			System.out.println("Dev"+sep+ArcEagerOnlineDecoder.getAnalysis(OnlinePerceptron.maxIter+1));
 			ArcEagerOnlineDecoder.resetCounter();
 		}
 		
@@ -736,5 +784,48 @@ public class ApplicationControl {
 		System.out.print(predictArcTag?("   Arc-Tag: "+counttagright+" : "+countfull+" = "+formatter.format(tagred)+"%\n"):"\n");
 		System.out.print(newPredArcTag?("   Arc-Tag: "+counttagright+" : "+countfull+" = "+formatter.format(tagred)+"%\n"):"\n");
 		
+	}
+	
+	public static void CompareResultInnerDev(String dataPath) throws IOException {
+		//compare parsing result with golden label
+		String path;
+		if(argsReader)
+			path = dataPath;
+		else
+			path = new String("/Users/zaa/Desktop/VIS hiwi/dep_parsing/wsj_dev.conll06");
+		String pathres;
+		if(argsReader)
+			pathres = dataPath+".result";
+		else
+			pathres = new String("/Users/zaa/Desktop/VIS hiwi/dep_parsing/wsj_dev.result.conll06");
+		FileInputStream fis=new FileInputStream(path);
+		InputStreamReader isr=new InputStreamReader(fis);
+		BufferedReader br=new BufferedReader(isr);
+		FileInputStream fisr=new FileInputStream(pathres);
+		InputStreamReader isrr=new InputStreamReader(fisr);
+		BufferedReader brr=new BufferedReader(isrr);
+		String line,liner;
+		int countfull=0;
+		int countright=0;
+		int fieldHead=6;
+		//only compare head and its tag
+		while((line = br.readLine())!=null && (liner = brr.readLine())!=null) {
+			if(StringUtils.isBlank(line) || StringUtils.isBlank(liner)) {
+				continue;
+			}
+			String[] fields = line.split("\t");
+			String[] fieldsr = liner.split("\t");
+			if(fields[fieldHead].equals(fieldsr[fieldHead])) {
+				countright++;
+			}
+			countfull++;
+		}
+		
+		br.close();
+		brr.close();
+		
+		Double red = ((double)countright*100D/(double)countfull);
+		NumberFormat formatter = new DecimalFormat("00.00"); 
+		System.out.println("Result: "+countright+" : "+countfull+" = "+formatter.format(red)+"%");
 	}
 }
