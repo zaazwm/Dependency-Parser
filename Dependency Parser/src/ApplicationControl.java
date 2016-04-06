@@ -18,6 +18,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.lang3.SerializationUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import de.bwaldvogel.liblinear.InvalidInputDataException;
@@ -421,10 +422,11 @@ public class ApplicationControl {
 					//learning curve
 					Reader devRd = new Reader(devFileString);
 					Writer devWt = new Writer(devFileString+".result");
-					
+					OnlinePerceptron opcdev = SerializationUtils.clone(opc);
+					opcdev.averageWeights();
 					while(devRd.hasNext()) {
 						Sentence st = devRd.readNextTest();
-						ArcEagerOnlineDecoder.doParsing(opc, st);
+						ArcEagerOnlineDecoder.doParsing(opcdev, st);
 						devWt.write(st);
 					}
 					
