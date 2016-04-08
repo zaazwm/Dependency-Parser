@@ -43,11 +43,25 @@ public class TransitionSequenceAnalysisUtil {
 					innermap.posBMap.put(ts.posB, 1);
 				}
 				
+				if(innermap.posS1Map.containsKey(ts.posS1)) {
+					innermap.posS1Map.put(ts.posS1, innermap.posS1Map.get(ts.posS1)+1);
+				}
+				else {
+					innermap.posS1Map.put(ts.posS1, 1);
+				}
+				
 				if(innermap.posSBMap.containsKey(ts.posS+"_"+ts.posB)) {
 					innermap.posSBMap.put(ts.posS+"_"+ts.posB, innermap.posSBMap.get(ts.posS+"_"+ts.posB)+1);
 				}
 				else {
 					innermap.posSBMap.put(ts.posS+"_"+ts.posB, 1);
+				}
+				
+				if(innermap.posSS1Map.containsKey(ts.posS+"_"+ts.posS1)) {
+					innermap.posSS1Map.put(ts.posS+"_"+ts.posS1, innermap.posSS1Map.get(ts.posS+"_"+ts.posS1)+1);
+				}
+				else {
+					innermap.posSS1Map.put(ts.posS+"_"+ts.posS1, 1);
 				}
 				
 				map.put(ts.trans, innermap);
@@ -77,11 +91,25 @@ public class TransitionSequenceAnalysisUtil {
 						innermap.posBMap.put(ts.posB, 1);
 					}
 					
+					if(innermap.posS1Map.containsKey(ts.posS1)) {
+						innermap.posS1Map.put(ts.posS1, innermap.posS1Map.get(ts.posS1)+1);
+					}
+					else {
+						innermap.posS1Map.put(ts.posS1, 1);
+					}
+					
 					if(innermap.posSBMap.containsKey(ts.posS+"_"+ts.posB)) {
 						innermap.posSBMap.put(ts.posS+"_"+ts.posB, innermap.posSBMap.get(ts.posS+"_"+ts.posB)+1);
 					}
 					else {
 						innermap.posSBMap.put(ts.posS+"_"+ts.posB, 1);
+					}
+					
+					if(innermap.posSS1Map.containsKey(ts.posS+"_"+ts.posS1)) {
+						innermap.posSS1Map.put(ts.posS+"_"+ts.posS1, innermap.posSS1Map.get(ts.posS+"_"+ts.posS1)+1);
+					}
+					else {
+						innermap.posSS1Map.put(ts.posS+"_"+ts.posS1, 1);
 					}
 					
 					map.put(ts.trans+"_"+t1, innermap);
@@ -115,11 +143,25 @@ public class TransitionSequenceAnalysisUtil {
 						innermap.posBMap.put(ts.posB, 1);
 					}
 					
+					if(innermap.posS1Map.containsKey(ts.posS1)) {
+						innermap.posS1Map.put(ts.posS1, innermap.posS1Map.get(ts.posS1)+1);
+					}
+					else {
+						innermap.posS1Map.put(ts.posS1, 1);
+					}
+					
 					if(innermap.posSBMap.containsKey(ts.posS+"_"+ts.posB)) {
 						innermap.posSBMap.put(ts.posS+"_"+ts.posB, innermap.posSBMap.get(ts.posS+"_"+ts.posB)+1);
 					}
 					else {
 						innermap.posSBMap.put(ts.posS+"_"+ts.posB, 1);
+					}
+					
+					if(innermap.posSS1Map.containsKey(ts.posS+"_"+ts.posS1)) {
+						innermap.posSS1Map.put(ts.posS+"_"+ts.posS1, innermap.posSS1Map.get(ts.posS+"_"+ts.posS1)+1);
+					}
+					else {
+						innermap.posSS1Map.put(ts.posS+"_"+ts.posS1, 1);
 					}
 					
 					map.put(ts.trans+"_"+t1+"_"+t2, innermap);
@@ -172,6 +214,20 @@ public class TransitionSequenceAnalysisUtil {
 				System.out.println("\tposB: "+p+" = "+md.posBMap.get(p));
 			}
 			System.out.println();
+			//posS1
+			posList = new ArrayList<String>(md.posS1Map.keySet());
+			Collections.sort(posList, new Comparator<String>() {
+
+				@Override
+				public int compare(String o1, String o2) {
+					return md.posS1Map.get(o2)-md.posS1Map.get(o1);
+				}
+				
+			});
+			for(String p : posList) {
+				System.out.println("\tposS1: "+p+" = "+md.posS1Map.get(p));
+			}
+			System.out.println();
 			//posSB
 			posList = new ArrayList<String>(md.posSBMap.keySet());
 			Collections.sort(posList, new Comparator<String>() {
@@ -184,6 +240,20 @@ public class TransitionSequenceAnalysisUtil {
 			});
 			for(String p : posList) {
 				System.out.println("\tposSB: "+p+" = "+md.posSBMap.get(p));
+			}
+			System.out.println();
+			//posSS1
+			posList = new ArrayList<String>(md.posSS1Map.keySet());
+			Collections.sort(posList, new Comparator<String>() {
+
+				@Override
+				public int compare(String o1, String o2) {
+					return md.posSS1Map.get(o2)-md.posSS1Map.get(o1);
+				}
+				
+			});
+			for(String p : posList) {
+				System.out.println("\tposSS1: "+p+" = "+md.posSS1Map.get(p));
 			}
 			System.out.println();
 			System.out.println();
@@ -230,13 +300,13 @@ public class TransitionSequenceAnalysisUtil {
 			ArrayList<TransitionSequence> list = new ArrayList<TransitionSequence>();
 			while((line = br.readLine())!=null) {
 				String[] split = line.split("\t");
-				if(split.length!=3) {
+				if(split.length!=4) {
 					StoreAnalysisData(list);
 					list.clear();
 					continue;
 				}
 				
-				list.add(new TransitionSequence(split[0], split[1], split[2]));
+				list.add(new TransitionSequence(split[0], split[1], split[2], split[3]));
 			}
 			
 			br.close();
@@ -253,13 +323,17 @@ public class TransitionSequenceAnalysisUtil {
 class MetaData {
 	public HashMap<String, Integer> posSMap;
 	public HashMap<String, Integer> posBMap;
+	public HashMap<String, Integer> posS1Map;
 	public HashMap<String, Integer> posSBMap;
+	public HashMap<String, Integer> posSS1Map;
 	public int count;
 	
 	public MetaData() {
 		posSMap = new HashMap<String, Integer>();
 		posBMap = new HashMap<String, Integer>();
+		posS1Map = new HashMap<String, Integer>();
 		posSBMap = new HashMap<String, Integer>();
+		posSS1Map = new HashMap<String, Integer>();
 		count=0;
 	}
 }

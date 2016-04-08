@@ -442,7 +442,8 @@ public class ArcEagerOnlineDecoder {
 				if(ApplicationControl.devAnalysisFile!=null)
 					transSeq.add(new TransitionSequence("SH", 
 						s.getStack().peekLast()==null?"null":s.getStack().peekLast().getPos(), 
-						s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos()));
+						s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos(),
+						s.getStack().size()>1?s.getStack().get(s.getStack().size()-2).getPos():"null"));
 				
 				//do shift
 				s.getStack().add(s.getBuffer().removeFirst());
@@ -458,7 +459,8 @@ public class ArcEagerOnlineDecoder {
 				if(ApplicationControl.devAnalysisFile!=null)
 					transSeq.add(new TransitionSequence("LA", 
 						s.getStack().peekLast()==null?"null":s.getStack().peekLast().getPos(), 
-						s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos()));
+						s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos(),
+						s.getStack().size()>1?s.getStack().get(s.getStack().size()-2).getPos():"null"));
 				
 				//add information to state: heads, leftmost, rightmost
 				makeArc(s, s.getBuffer().peekFirst().getID(), s.getStack().peekLast().getID());
@@ -476,7 +478,8 @@ public class ArcEagerOnlineDecoder {
 				if(ApplicationControl.devAnalysisFile!=null)
 					transSeq.add(new TransitionSequence("RA", 
 						s.getStack().peekLast()==null?"null":s.getStack().peekLast().getPos(), 
-						s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos()));
+						s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos(),
+						s.getStack().size()>1?s.getStack().get(s.getStack().size()-2).getPos():"null"));
 				
 				//add information to state: heads, leftmost, rightmost
 				makeArc(s, s.getStack().peekLast().getID(), s.getBuffer().peekFirst().getID());
@@ -493,7 +496,8 @@ public class ArcEagerOnlineDecoder {
 					if(ApplicationControl.devAnalysisFile!=null)
 						transSeq.add(new TransitionSequence("RE", 
 							s.getStack().peekLast()==null?"null":s.getStack().peekLast().getPos(), 
-							s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos()));
+							s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos(),
+							s.getStack().size()>1?s.getStack().get(s.getStack().size()-2).getPos():"null"));
 					
 					//system-3-headless
 					Word topWord = s.getStack().removeLast();
@@ -511,7 +515,8 @@ public class ArcEagerOnlineDecoder {
 							if(ApplicationControl.devAnalysisFile!=null)
 								transSeq.add(new TransitionSequence("UN", 
 									s.getStack().peekLast()==null?"null":s.getStack().peekLast().getPos(), 
-									s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos()));
+									s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos(),
+									s.getStack().size()>1?s.getStack().get(s.getStack().size()-2).getPos():"null"));
 							
 							//system-4-unshift
 							s.getBuffer().addFirst(s.getStack().removeLast());
@@ -529,7 +534,8 @@ public class ArcEagerOnlineDecoder {
 						if(ApplicationControl.devAnalysisFile!=null)
 							transSeq.add(new TransitionSequence("RE", 
 								s.getStack().peekLast()==null?"null":s.getStack().peekLast().getPos(), 
-								s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos()));
+								s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos(),
+								s.getStack().size()>1?s.getStack().get(s.getStack().size()-2).getPos():"null"));
 						
 						//system-1, system-3-other, system-4-reduce
 						s.getStack().removeLast();
@@ -541,7 +547,8 @@ public class ArcEagerOnlineDecoder {
 				if(ApplicationControl.devAnalysisFile!=null)
 					transSeq.add(new TransitionSequence("UN", 
 						s.getStack().peekLast()==null?"null":s.getStack().peekLast().getPos(), 
-						s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos()));
+						s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos(),
+						s.getStack().size()>1?s.getStack().get(s.getStack().size()-2).getPos():"null"));
 				
 				//do unshift
 				s.getBuffer().addFirst(s.getStack().removeLast());
@@ -1427,15 +1434,17 @@ class TransitionSequence {
 	public String trans;
 	public String posS;
 	public String posB;
+	public String posS1;
 	
-	public TransitionSequence(String t, String s, String b) {
+	public TransitionSequence(String t, String s, String b, String s1) {
 		trans=t;
 		posS=s;
 		posB=b;
+		posS1=s1;
 	}
 	
 	public String toString() {
-		return trans+"\t"+posS+"\t"+posB;
+		return trans+"\t"+posS+"\t"+posB+"\t"+posS1;
 	}
 	
 	public static void writeDevAnalysis(LinkedList<TransitionSequence> list) {
@@ -1451,7 +1460,7 @@ class TransitionSequence {
 			}
 			BufferedWriter fw=new BufferedWriter( new OutputStreamWriter(new FileOutputStream(file, true),"UTF-8"));
 			if(!exist)
-				fw.write(new TransitionSequence("Trans", "POS(s)", "POS(b)").toString()+"\n\n");
+				fw.write(new TransitionSequence("Trans", "POS(s)", "POS(b)", "POS(s1)").toString()+"\n\n");
 			for(TransitionSequence ts : list) {
 				fw.write(ts.toString()+"\n");
 			}
