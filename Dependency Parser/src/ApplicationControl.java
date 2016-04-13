@@ -759,6 +759,7 @@ public class ApplicationControl {
 		int countfull=0;
 		int countright=0;
 		int counttagright=0;
+		int fieldID=0;
 		int fieldHead=6;
 		int fieldRel=7;
 		//only compare head and its tag
@@ -768,6 +769,8 @@ public class ApplicationControl {
 			}
 			String[] fields = line.split("\t");
 			String[] fieldsr = liner.split("\t");
+			if(!fields[fieldID].equals(fieldsr[fieldID]))
+				System.out.println("Corpus not aligned, please check!");
 			if(fields[fieldHead].equals(fieldsr[fieldHead])) {
 				countright++;
 				if(fields[fieldRel].equals(fieldsr[fieldRel]))
@@ -809,6 +812,7 @@ public class ApplicationControl {
 		String line,liner;
 		int countfull=0;
 		int countright=0;
+		int fieldID=0;
 		int fieldHead=6;
 		//only compare head and its tag
 		while((line = br.readLine())!=null && (liner = brr.readLine())!=null) {
@@ -817,6 +821,8 @@ public class ApplicationControl {
 			}
 			String[] fields = line.split("\t");
 			String[] fieldsr = liner.split("\t");
+			if(!fields[fieldID].equals(fieldsr[fieldID]))
+				System.out.println("Corpus not aligned, please check!");
 			if(fields[fieldHead].equals(fieldsr[fieldHead])) {
 				countright++;
 			}
