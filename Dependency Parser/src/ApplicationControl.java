@@ -48,6 +48,7 @@ public class ApplicationControl {
 	public static int AfterEndSolution = 0;  //select after-end non-terminal solution
 											 //0 - "Ignore", 1 - "All Root", 2 - "All RightArc", 3 - "All LeftArc", 4 - "By Oracle"
 	public static boolean CleanerOutput=false;  //true to only print key-contents
+	public static boolean NMReduceEnabled=false;  //to assign NM-Reduce as a single class
 
 	private static String devFileString = null;   //to output learning curve
 	public static String devAnalysisFile = null;  //to store sequence analysis (transition)
@@ -82,6 +83,7 @@ public class ApplicationControl {
 		para.addOption("NM", "NonMonotonic", false, "use Non-Monotonic Transitions");
 		para.addOption("UCS", "UnshiftCostSwitch", true, "Choose the cost function for Unshift [1-6]");
 		para.addOption("CO", "CleanerOutput", false, "print cleaner messages");
+		para.addOption("NMRE", "NMReduceEnabled", false, "assign NM-Reduce as a single class");
 		para.addOption("devfile", true, "filepath(<arg>) for dev file");
 		para.addOption("devanalysisfile", true, "filepath(<arg>) for dev analysis file");
 		
@@ -166,6 +168,9 @@ public class ApplicationControl {
 		
 		if(cl.hasOption("CO") || cl.hasOption("CleanerOutput"))
 			CleanerOutput=true;
+		
+		if(cl.hasOption("NMRE") || cl.hasOption("NMReduceEnabled"))
+			NMReduceEnabled=true;
 		
 		
 		if(cl.hasOption("UCS")) {
@@ -357,11 +362,13 @@ public class ApplicationControl {
 			opc = new StaticPerceptron(ArcEagerOnlineDecoder.nLabel);
 		}
 		else if(OnlineDynamicPerceptron) {
-			if(UnshiftEnabled) {
+			ArcEagerOnlineDecoder.disableNMReduce();
+			ArcEagerOnlineDecoder.disableUnshift();
+			if(NMReduceEnabled) 
+				ArcEagerOnlineDecoder.enableNMReduce();
+			if(UnshiftEnabled) 
 				ArcEagerOnlineDecoder.enableUnshift();
-			} else {
-				ArcEagerOnlineDecoder.disableUnshift();
-			}
+			
 			opc = new DynamicPerceptron(ArcEagerOnlineDecoder.nLabel);
 		}
 		
@@ -440,7 +447,7 @@ public class ApplicationControl {
 			opc.averageWeights();
 			
 			String sep = ArcEagerOnlineDecoder.analysisSeparator;
-			System.out.println("IterNr"+sep+"#LeftArc(headless)"+sep+"#LeftArc(overwrite)"+sep+"#RightArc(S(b)=0)"+sep+"#RightArc(S(b)=1)"+sep+"#Shift"+sep+"#Reduce"+sep+"#Unshift"+sep+"#Total"+sep+"#2N");
+			System.out.println("IterNr"+sep+"#LeftArc(headless)"+sep+"#LeftArc(overwrite)"+sep+"#RightArc(S(b)=0)"+sep+"#RightArc(S(b)=1)"+sep+"#Shift"+sep+"#Reduce"+sep+(NMReduceEnabled?"#NMReduce":"#Unshift")+sep+"#Total"+sep+"#2N");
 			if(OnlineDynamicPerceptron) {
 				for(int i=1;i<=OnlinePerceptron.maxIter;i++) {
 					System.out.println("Iter"+i+sep+ArcEagerOnlineDecoder.getAnalysis(i));
@@ -589,11 +596,13 @@ public class ApplicationControl {
 				opc = (StaticPerceptron) ois.readObject();
 			}
 			else if(OnlineDynamicPerceptron) {
-				if(UnshiftEnabled) {
+				ArcEagerOnlineDecoder.disableNMReduce();
+				ArcEagerOnlineDecoder.disableUnshift();
+				if(NMReduceEnabled) 
+					ArcEagerOnlineDecoder.enableNMReduce();
+				if(UnshiftEnabled) 
 					ArcEagerOnlineDecoder.enableUnshift();
-				} else {
-					ArcEagerOnlineDecoder.disableUnshift();
-				}
+				
 				opc = (DynamicPerceptron) ois.readObject();
 			}
 			ois.close();
@@ -728,7 +737,7 @@ public class ApplicationControl {
 		
 		if(ArcEagerOnline) {
 			String sep = ArcEagerOnlineDecoder.analysisSeparator;
-			System.out.println("IterNr"+sep+"#LeftArc(headless)"+sep+"#LeftArc(overwrite)"+sep+"#RightArc(S(b)=0)"+sep+"#RightArc(S(b)=1)"+sep+"#Shift"+sep+"#Reduce"+sep+"#Unshift"+sep+"#Total"+sep+"#2N");
+			System.out.println("IterNr"+sep+"#LeftArc(headless)"+sep+(NonMonotonic?"#LeftArc(overwrite)":"#LeftArc(After-end)")+sep+"#RightArc(S(b)=0)"+sep+(NonMonotonic?"#RightArc(S(b)=1)":"#RightArc(After-end)")+sep+"#Shift"+sep+"#Reduce"+sep+(NMReduceEnabled?"#NMReduce":"#Unshift")+sep+"#Total"+sep+"#2N");
 			System.out.println("Dev"+sep+ArcEagerOnlineDecoder.getAnalysis(OnlinePerceptron.maxIter+1));
 			ArcEagerOnlineDecoder.resetCounter();
 		}

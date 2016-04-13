@@ -24,6 +24,7 @@ public class Configuration {
 			conf=3;
 			break;
 		case "unshift":
+		case "nmreduce":
 			conf=4;
 			break;
 		default:
@@ -51,6 +52,7 @@ public class Configuration {
 			conf=3;
 			break;
 		case "unshift":
+		case "nmreduce":
 			conf=4;
 			break;
 		default:
@@ -156,6 +158,7 @@ public class Configuration {
 		case "swap":
 			return 3;
 		case "unshift":
+		case "nmreduce":
 			return 4;
 		default:
 			return 5;

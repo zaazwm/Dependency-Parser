@@ -13,6 +13,7 @@ public class ArcEagerOnlineDecoder {
 	public static final String transition4thName = "Unshift"; 
 	private static int[] sentenceCount = new int[OnlinePerceptron.maxIter];
 	private static boolean useUnshift = false;
+	private static boolean useNMReduce = false;
 	
 	//toPrint transition-details
 	private static Random rnd = new Random();
@@ -93,6 +94,12 @@ public class ArcEagerOnlineDecoder {
 						break;
 					}
 				}
+				else if(useNMReduce && p==Configuration.getConfToInt("NMReduce")) {
+					if(legalNMReduce(s)) {
+						nPredict=p;
+						break;
+					}
+				}
 				else if(p==Configuration.getConfToInt("Shift")) {
 					if(legalShift(s)) {
 						nPredict=p;
@@ -126,6 +133,9 @@ public class ArcEagerOnlineDecoder {
 				default:
 					break;
 				}
+			}
+			if(useNMReduce) {
+				nlCorrect[Configuration.getConfToInt("NMReduce")]=costNMReduce(s);
 			}
 			nlCorrect[Configuration.getConfToInt("Shift")]=costShift(s);
 			
@@ -178,6 +188,10 @@ public class ArcEagerOnlineDecoder {
 						break;
 					}
 				}
+				if(useNMReduce) {
+					if(nlCorrect[Configuration.getConfToInt("NMReduce")] == 0)
+						nlCorrect[Configuration.getConfToInt("NMReduce")]=costNMReduce(s);
+				}
 				if(nlCorrect[Configuration.getConfToInt("Shift")] == 0)
 					nlCorrect[Configuration.getConfToInt("Shift")]=costShift(s);
 				
@@ -210,6 +224,9 @@ public class ArcEagerOnlineDecoder {
 						default:
 							break;
 						}
+					}
+					if(useNMReduce) {
+						nlCorrect[Configuration.getConfToInt("NMReduce")]=costNMReduce(s);
 					}
 					nlCorrect[Configuration.getConfToInt("Shift")]=costShift(s);
 					
@@ -310,7 +327,7 @@ public class ArcEagerOnlineDecoder {
 				if(toPrint)
 					conf = (new Configuration(s.clone(),st,"Reduce", null));
 				//do reduce
-				if(ApplicationControl.NonMonotonic && !useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
+				if(ApplicationControl.NonMonotonic && !useUnshift && !useNMReduce && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
 					//system-3-headless
 					Word topWord = s.getStack().removeLast();
 					makeArc(s, s.getStack().peekLast().getID(), topWord.getID());
@@ -354,6 +371,15 @@ public class ArcEagerOnlineDecoder {
 				printTransitionAnalysis[iterationNumber-1][6]++;
 				//do unshift
 				s.getBuffer().addFirst(s.getStack().removeLast());
+			}
+			else if(useNMReduce && nNext==Configuration.getConfToInt("NMReduce")) {
+				//system-3.5
+				if(toPrint)
+					conf = (new Configuration(s.clone(),st,"NMReduce", null));
+				printTransitionAnalysis[iterationNumber-1][6]++;
+				//do NM-reduce
+				Word topWord = s.getStack().removeLast();
+				makeArc(s, s.getStack().peekLast().getID(), topWord.getID());
 			}
 			else if(nNext==Configuration.getConfToInt("Shift")) {
 				//add configuration to list
@@ -425,6 +451,12 @@ public class ArcEagerOnlineDecoder {
 						break;
 					}
 				}
+				else if(useNMReduce && b==Configuration.getConfToInt("NMReduce")) {
+					if(legalNMReduce(s)) {
+						bestTrans=b;
+						break;
+					}
+				}
 				else if(b==Configuration.getConfToInt("Shift")) {
 					if(legalShift(s)) {
 						bestTrans=b;
@@ -491,7 +523,7 @@ public class ArcEagerOnlineDecoder {
 			}
 			else if(bestTrans==3) {  //reduce
 				//do reduce
-				if(ApplicationControl.NonMonotonic && !useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
+				if(ApplicationControl.NonMonotonic && !useUnshift && !useNMReduce && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
 					printTransitionAnalysis[OnlinePerceptron.maxIter][5]++;
 					if(ApplicationControl.devAnalysisFile!=null)
 						transSeq.add(new TransitionSequence("RE", 
@@ -552,6 +584,21 @@ public class ArcEagerOnlineDecoder {
 				
 				//do unshift
 				s.getBuffer().addFirst(s.getStack().removeLast());
+			}
+			else if(useNMReduce && bestTrans==4) {  //NM-reduce
+				printTransitionAnalysis[OnlinePerceptron.maxIter][6]++;
+				if(ApplicationControl.devAnalysisFile!=null)
+					transSeq.add(new TransitionSequence("UN", 
+						s.getStack().peekLast()==null?"null":s.getStack().peekLast().getPos(), 
+						s.getBuffer().peekFirst()==null?"null":s.getBuffer().peekFirst().getPos(),
+						s.getStack().size()>1?s.getStack().get(s.getStack().size()-2).getPos():"null"));
+				
+				//system-3.5
+				//do NM-reduce
+				Word topWord = s.getStack().removeLast();
+				
+				makeArc(s, s.getStack().peekLast().getID(), topWord.getID());
+				st.getWdList().get(topWord.getID()).setHead(s.getStack().peekLast().getID());
 			}
 			else {
 				try {
@@ -1016,7 +1063,6 @@ public class ArcEagerOnlineDecoder {
 		return cost;
 	}
 	
-	//cost function for each transition
 	private static int costReduceUnshift(State s) {
 		if(!legalUnshift(s))
 			return Integer.MAX_VALUE;
@@ -1040,6 +1086,33 @@ public class ArcEagerOnlineDecoder {
 			}
 			//NM_RE = 0
 			//Unshift = 0
+		}
+		
+		return cost;
+	}
+	
+	private static int costNMReduce(State s) {
+		if(!legalNMReduce(s))
+			return Integer.MAX_VALUE;
+		
+		int cost = 0;
+		
+		//system-1
+		for(Word w : s.getBuffer()) {
+			if(w.getHead()==s.getStack().peekLast().getID())
+				cost++;
+		}
+		
+		if(ApplicationControl.NonMonotonic) {
+			//system-3, system-4
+			//NM_LA
+			for(Word w : s.getBuffer()) {
+				if(s.getStack().peekLast().getHead()==w.getID()) {
+					cost++;
+					break;
+				}
+			}
+			//NM_RE = 0
 		}
 		
 		return cost;
@@ -1295,6 +1368,9 @@ public class ArcEagerOnlineDecoder {
 		if(!ApplicationControl.NonMonotonic && s.getHeads()[s.getStack().peekLast().getID()]==-1)
 			return false;
 		
+		if(ApplicationControl.NonMonotonic && useNMReduce && s.getHeads()[s.getStack().peekLast().getID()]==-1)
+			return false;
+		
 		//system-5
 		//HEAD(s)
 		if(useUnshift) {
@@ -1313,6 +1389,23 @@ public class ArcEagerOnlineDecoder {
 				break;
 			}
 		}
+		
+		return true;
+	}
+	
+	private static boolean legalNMReduce(State s) {
+		//system-3.5
+		if(!useNMReduce)
+			return false;
+		
+		if(!ApplicationControl.NonMonotonic)
+			return false;
+		
+		if(s.getStack().size()<=1)
+			return false;
+		
+		if(s.getHeads()[s.getStack().peekLast().getID()]!=-1)
+			return false;
 		
 		return true;
 	}
@@ -1399,6 +1492,16 @@ public class ArcEagerOnlineDecoder {
 	
 	public static void disableUnshift() {
 		useUnshift=false;
+		nLabel=4;
+	}
+	
+	public static void enableNMReduce() {
+		useNMReduce=true;
+		nLabel=5;
+	}
+	
+	public static void disableNMReduce() {
+		useNMReduce=false;
 		nLabel=4;
 	}
 	
