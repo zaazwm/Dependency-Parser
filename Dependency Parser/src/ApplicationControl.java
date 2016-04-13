@@ -769,6 +769,8 @@ public class ApplicationControl {
 			}
 			String[] fields = line.split("\t");
 			String[] fieldsr = liner.split("\t");
+			fields[fieldID]=fields[fieldID].substring(fields[fieldID].lastIndexOf('_')+1);
+			fieldsr[fieldID]=fieldsr[fieldID].substring(fieldsr[fieldID].lastIndexOf('_')+1);
 			if(!fields[fieldID].equals(fieldsr[fieldID]))
 				System.out.println("Corpus not aligned, please check!");
 			if(fields[fieldHead].equals(fieldsr[fieldHead])) {
@@ -821,6 +823,8 @@ public class ApplicationControl {
 			}
 			String[] fields = line.split("\t");
 			String[] fieldsr = liner.split("\t");
+			fields[fieldID]=fields[fieldID].substring(fields[fieldID].lastIndexOf('_')+1);
+			fieldsr[fieldID]=fieldsr[fieldID].substring(fieldsr[fieldID].lastIndexOf('_')+1);
 			if(!fields[fieldID].equals(fieldsr[fieldID]))
 				System.out.println("Corpus not aligned, please check!");
 			if(fields[fieldHead].equals(fieldsr[fieldHead])) {
