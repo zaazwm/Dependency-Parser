@@ -660,7 +660,7 @@ public class ArcEagerOnlineDecoder {
 		}
 		else if(ApplicationControl.AfterEndSolution==4) {  //By Oracle (system-2)
 			//new: try to solve no-head problem with prediction
-			while(s.getStack().size()>1) {
+			while(true) {
 				
 				int[] bestTransList = model.findBestList(s.buildFeature(st));
 				int bestTrans = -1;
@@ -694,8 +694,9 @@ public class ArcEagerOnlineDecoder {
 					if(legalFinalUnshift(s)) {
 						bestTrans=Configuration.getConfToInt("Unshift");
 					}
-					else {  //should not reach
-						System.out.println("no legal transition available");
+					else {  //terminal
+						if(s.getStack().size()>1 || !s.getBuffer().isEmpty())  //should not reach
+							System.out.println("no legal transition available");
 						break;
 					}
 				}
@@ -708,7 +709,7 @@ public class ArcEagerOnlineDecoder {
 					s.getStack().add(s.getBuffer().removeFirst());
 				}
 				else if(bestTrans==1) {  //leftArc
-					printTransitionAnalysis[OnlinePerceptron.maxIter][0]++;
+					printTransitionAnalysis[OnlinePerceptron.maxIter][1]++;
 					//add information to state: heads, leftmost, rightmost
 					makeArc(s, s.getBuffer().peekFirst().getID(), s.getStack().peekLast().getID());
 					
