@@ -76,11 +76,13 @@ public class ArcEagerOnlineDecoder {
 					case 0:
 					case 1:
 					case 2:
+					case 6:
 						//same class
 						break;
 					case 3:
 					case 4:
 					case 5:
+					case 7:
 						//single class
 						if(legalUnshift(s)) {
 							legalUnshift=true;
@@ -123,11 +125,13 @@ public class ArcEagerOnlineDecoder {
 				case 0:
 				case 1:
 				case 2:
+				case 6:
 					//same class
 					break;
 				case 3:
 				case 4:
 				case 5:
+				case 7:
 					nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
 					break;
 				default:
@@ -175,11 +179,13 @@ public class ArcEagerOnlineDecoder {
 					case 0:
 					case 1:
 					case 2:
+					case 6:
 						//same class
 						break;
 					case 3:
 					case 4:
 					case 5:
+					case 7:
 						//single class
 						if(nlCorrect[Configuration.getConfToInt("Unshift")] == 0)
 							nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
@@ -213,11 +219,13 @@ public class ArcEagerOnlineDecoder {
 						case 0:
 						case 1:
 						case 2:
+						case 6:
 							//same class
 							break;
 						case 3:
 						case 4:
 						case 5:
+						case 7:
 							//single class
 							nlCorrect[Configuration.getConfToInt("Unshift")]=costUnshift(s);
 							break;
@@ -339,6 +347,7 @@ public class ArcEagerOnlineDecoder {
 						case 0:
 						case 1:
 						case 2:
+						case 6:
 							//system-4-unshift
 							//add configuration to list
 							if(toPrint)
@@ -350,6 +359,7 @@ public class ArcEagerOnlineDecoder {
 						case 3:
 						case 4:
 						case 5:
+						case 7:
 							//should not reach
 							System.out.println("Invalid unshift transition operation");
 							break;
@@ -543,6 +553,7 @@ public class ArcEagerOnlineDecoder {
 						case 0:
 						case 1:
 						case 2:
+						case 6:
 							printTransitionAnalysis[OnlinePerceptron.maxIter][6]++;
 							if(ApplicationControl.devAnalysisFile!=null)
 								transSeq.add(new TransitionSequence("UN", 
@@ -556,6 +567,7 @@ public class ArcEagerOnlineDecoder {
 						case 3:
 						case 4:
 						case 5:
+						case 7:
 							break;
 						default:
 							break;
@@ -1047,10 +1059,13 @@ public class ArcEagerOnlineDecoder {
 					//shifted
 				case 2:
 					//zero-cost
+				case 6:
+					//infinity shifted
 					return costUnshift(s);
 				case 3:
 				case 4:
 				case 5:
+				case 7:
 					//should not reach
 					System.out.println("Invalid unshift cost!");
 					return Integer.MAX_VALUE;
@@ -1138,16 +1153,19 @@ public class ArcEagerOnlineDecoder {
 		if(ApplicationControl.NonMonotonic) {
 			//system-3
 			//NM_LA
+			boolean cost_nm_la=false;
 			if(s.getStack().peekLast().getHead()==s.getHeads()[s.getStack().peekLast().getID()])
-				cost++;
-			if(s.getStack().peekLast().getHead()!=s.getBuffer().peekFirst().getID()) {
+				cost_nm_la=true;
+			if(s.getHeads()[s.getStack().peekLast().getID()]!=-1 && s.getStack().peekLast().getHead()!=s.getBuffer().peekFirst().getID()) {
 				for(Word w : s.getBuffer()) {
 					if(s.getStack().peekLast().getHead()==w.getID()) {
-						cost++;
+						cost_nm_la=true;
 						break;
 					}
 				}
 			}
+			if(cost_nm_la)
+				cost++;
 			if(!useUnshift) {
 				//system-3
 				//NM_RE
@@ -1226,19 +1244,20 @@ public class ArcEagerOnlineDecoder {
 			//NM_RE = 0
 			
 			//system-4
-			if(ApplicationControl.NonMonotonic && useUnshift) {
-				if(!s.getUnshift(s.getBuffer().peekFirst().getID())) {
-					for(Word w : s.getBuffer()) {
-						if(w==s.getBuffer().peekFirst()) 
-							continue;
-						
-						if(s.getBuffer().peekFirst().getHead()==w.getID()) {
-							cost++;
-							break;
-						}
-					}
-				}
-			}
+			//Unshift = 0
+//			if(ApplicationControl.NonMonotonic && useUnshift) {
+//				if(!s.getUnshift(s.getBuffer().peekFirst().getID())) {
+//					for(Word w : s.getBuffer()) {
+//						if(w==s.getBuffer().peekFirst()) 
+//							continue;
+//						
+//						if(s.getBuffer().peekFirst().getHead()==w.getID()) {
+//							cost++;
+//							break;
+//						}
+//					}
+//				}
+//			}
 		}
 		
 		if(cost<0)
@@ -1261,14 +1280,38 @@ public class ArcEagerOnlineDecoder {
 		case 1:
 		case 4:
 			//system-5 (shifted)
-			//if(s.getUnshift(s.getStack().peekLast().getID())) {
-				for(Word w : s.getBuffer()) {
-					if(s.getStack().peekLast().getHead()==w.getID()) {
-						cost++;
-						break;
-					}
+			boolean dep_in_stack = false; 
+			for(Word w : s.getStack()) {
+				if(w.getHead()==s.getStack().peekLast().getID())
+					dep_in_stack=true;
+					break;
+			}
+			if(dep_in_stack)
+				break;
+			for(Word w : s.getBuffer()) {
+				if(s.getStack().peekLast().getHead()==w.getID()) {
+					cost++;
+					break;
 				}
-			//}
+			}
+			break;
+		case 6:
+		case 7:
+			//system-5 (infinity shifted)
+			dep_in_stack = false; 
+			for(Word w : s.getStack()) {
+				if(w.getHead()==s.getStack().peekLast().getID())
+					dep_in_stack=true;
+					break;
+			}
+			if(dep_in_stack)
+				break;
+			for(Word w : s.getBuffer()) {
+				if(s.getStack().peekLast().getHead()==w.getID()) {
+					cost=Integer.MAX_VALUE-1;
+					break;
+				}
+			}
 			break;
 		case 2:
 		case 5:
@@ -1378,10 +1421,12 @@ public class ArcEagerOnlineDecoder {
 			case 0:
 			case 1:
 			case 2:
+			case 6:
 				break;
 			case 3:
 			case 4:
 			case 5:
+			case 7:
 				if(s.getHeads()[s.getStack().peekLast().getID()]==-1)
 					return false;
 				break;
@@ -1475,12 +1520,14 @@ public class ArcEagerOnlineDecoder {
 		case 0:
 		case 1:
 		case 2:
+		case 6:
 			//system-4-unshift
 			nLabel=4;
 			break;
 		case 3:
 		case 4:
 		case 5:
+		case 7:
 			//system-5
 			nLabel=5;
 			break;

@@ -30,7 +30,7 @@ public class GUIThesis implements GUI {
 	public static final String[] trainings = {"StaticPerceptron", "DynamicPerceptron"};
 	public static final String[] methods = {"Train", "Dev", "Test"};
 	public static final String[] afterends = {"Ignore", "All Root", "All RightArc", "All LeftArc", "By Oracle"};
-	public static final String[] unshiftcosts = {"Same+Reduce", "Same+Shifted", "Same+Zero", "Single+Reduce", "Single+Shifted", "Single+Zero"};
+	public static final String[] unshiftcosts = {"Same+Reduce", "Same+Shifted", "Same+Zero", "Single+Reduce", "Single+Shifted", "Single+Zero", "Same+Infinity", "Single+Infinity"};
 
 	public static void main(String[] args) {
 		//main entrance for GUI program

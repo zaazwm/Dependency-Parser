@@ -45,6 +45,7 @@ public class ApplicationControl {
 	public static int UnshiftCostSwitch=0;  //select unshift-cost function
 											//0 - "Same Class+Reduce Cost", 1 - "Same Class+Shifted Cost", 2 - "Same Class+Zero Cost"
 											//3 - "Single Class+Reduce Cost", 4 - "Single Class+Shifted Cost", 5 - "Single Class+Zero Cost"
+											//6 - "Same Class+Infinity Shifted Cost", 7 - "Single Class+Infinity Shifted Cost"
 	public static int AfterEndSolution = 0;  //select after-end non-terminal solution
 											 //0 - "Ignore", 1 - "All Root", 2 - "All RightArc", 3 - "All LeftArc", 4 - "By Oracle"
 	public static boolean CleanerOutput=false;  //true to only print key-contents
@@ -175,7 +176,7 @@ public class ApplicationControl {
 		
 		if(cl.hasOption("UCS")) {
 			UnshiftCostSwitch = Integer.parseInt(cl.getOptionValue("UCS"));
-			if(UnshiftCostSwitch<=0 || UnshiftCostSwitch>6)
+			if(UnshiftCostSwitch<=0 || UnshiftCostSwitch>8)
 				UnshiftCostSwitch = 0;
 			else
 				UnshiftCostSwitch--;
@@ -183,7 +184,7 @@ public class ApplicationControl {
 		
 		if(cl.hasOption("UnshiftCostSwitch")) {
 			UnshiftCostSwitch = Integer.parseInt(cl.getOptionValue("UnshiftCostSwitch"));
-			if(UnshiftCostSwitch<=0 || UnshiftCostSwitch>6)
+			if(UnshiftCostSwitch<=0 || UnshiftCostSwitch>8)
 				UnshiftCostSwitch = 0;
 			else
 				UnshiftCostSwitch--;
