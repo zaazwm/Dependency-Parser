@@ -1282,9 +1282,10 @@ public class ArcEagerOnlineDecoder {
 			//system-5 (shifted)
 			boolean dep_in_stack = false; 
 			for(Word w : s.getStack()) {
-				if(w.getHead()==s.getStack().peekLast().getID())
+				if(w.getHead()==s.getStack().peekLast().getID()) {
 					dep_in_stack=true;
 					break;
+				}
 			}
 			if(dep_in_stack)
 				break;
@@ -1300,9 +1301,10 @@ public class ArcEagerOnlineDecoder {
 			//system-5 (infinity shifted)
 			dep_in_stack = false; 
 			for(Word w : s.getStack()) {
-				if(w.getHead()==s.getStack().peekLast().getID())
+				if(w.getHead()==s.getStack().peekLast().getID()) {
 					dep_in_stack=true;
 					break;
+				}
 			}
 			if(dep_in_stack)
 				break;
