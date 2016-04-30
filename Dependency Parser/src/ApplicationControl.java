@@ -53,6 +53,7 @@ public class ApplicationControl {
 
 	private static String devFileString = null;   //to output learning curve
 	public static String devAnalysisFile = null;  //to store sequence analysis (transition)
+	public static boolean RelCount=false;  //only valid for NM-RE and 2C-Unshift-Head
 	
 	public static void main(String[] args) throws IOException, ClassNotFoundException, InvalidInputDataException, ParseException {
 		//main entry to application
@@ -87,6 +88,7 @@ public class ApplicationControl {
 		para.addOption("NMRE", "NMReduceEnabled", false, "assign NM-Reduce as a single class");
 		para.addOption("devfile", true, "filepath(<arg>) for dev file");
 		para.addOption("devanalysisfile", true, "filepath(<arg>) for dev analysis file");
+		para.addOption("RC", "RelCount", false, "DEBUG: only valid for NM-RE and 2C-Unshift-Head");
 		
 		CommandLine cl = parser.parse(para, args);
 		
@@ -172,6 +174,9 @@ public class ApplicationControl {
 		
 		if(cl.hasOption("NMRE") || cl.hasOption("NMReduceEnabled"))
 			NMReduceEnabled=true;
+		
+		if(cl.hasOption("RC") || cl.hasOption("RelCount"))
+			RelCount=true;
 		
 		
 		if(cl.hasOption("UCS")) {
@@ -422,6 +427,10 @@ public class ApplicationControl {
 		//online training iteration for ArcEagerOnline
 		if(ArcEagerOnline) {
 			for(int i=2;i<=OnlinePerceptron.maxIter;i++) {
+//				System.out.println("It: "+(i-1)+"\tSH: "+ArcEagerOnlineDecoder.specialcounter[0]+"\tLA:"+ArcEagerOnlineDecoder.specialcounter[1]+"\tRA:"+ArcEagerOnlineDecoder.specialcounter[2]);
+//				ArcEagerOnlineDecoder.specialcounter[0]=0;
+//				ArcEagerOnlineDecoder.specialcounter[1]=0;
+//				ArcEagerOnlineDecoder.specialcounter[2]=0;
 				for(Sentence st : stList) {
 					ArcEagerOnlineDecoder.buildConfiguration(st, opc, i);
 				}
@@ -446,6 +455,7 @@ public class ApplicationControl {
 				}
 			}
 			opc.averageWeights();
+//			System.out.println("It: 15\tSH: "+ArcEagerOnlineDecoder.specialcounter[0]+"\tLA:"+ArcEagerOnlineDecoder.specialcounter[1]+"\tRA:"+ArcEagerOnlineDecoder.specialcounter[2]);
 			
 			String sep = ArcEagerOnlineDecoder.analysisSeparator;
 			System.out.println("IterNr"+sep+"#LeftArc(headless)"+sep+"#LeftArc(overwrite)"+sep+"#RightArc(S(b)=0)"+sep+"#RightArc(S(b)=1)"+sep+"#Shift"+sep+"#Reduce"+sep+(NMReduceEnabled?"#NMReduce":"#Unshift")+sep+"#Total"+sep+"#2N");

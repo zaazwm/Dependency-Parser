@@ -4,6 +4,7 @@ import java.awt.FileDialog;
 import java.awt.FlowLayout;
 import java.io.IOException;
 
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -30,7 +31,8 @@ public class GUIThesis implements GUI {
 	public static final String[] trainings = {"StaticPerceptron", "DynamicPerceptron"};
 	public static final String[] methods = {"Train", "Dev", "Test"};
 	public static final String[] afterends = {"Ignore", "All Root", "All RightArc", "All LeftArc", "By Oracle"};
-	public static final String[] unshiftcosts = {"Same+Reduce", "Same+Shifted", "Same+Zero", "Single+Reduce", "Single+Shifted", "Single+Zero", "Same+Infinity", "Single+Infinity"};
+	public static final String[] unshiftcosts = {"Same+Reduce", "Same+Head", "Same+Zero", "Single+Reduce", "Single+Head", "Single+Zero", "Same+Head.o", "Single+Head.o"};
+	public static final String[] nmreduceclasses = {"Same", "Single"};
 
 	public static void main(String[] args) {
 		//main entrance for GUI program
@@ -122,6 +124,8 @@ public class GUIThesis implements GUI {
 	@Override
 	public void run() {
 		ApplicationControl.CleanerOutput=false;
+		if(!ApplicationControl.UnshiftEnabled && ApplicationControl.NonMonotonic)
+			ApplicationControl.NMReduceEnabled=(unshiftcost.getSelectedIndex()==1);
 		//run if clicked 'run' button
 		System.out.println("Arguments Readed: ");
 		
@@ -186,6 +190,7 @@ public class GUIThesis implements GUI {
 			afterend.setEnabled(false);
 			afterend.setSelectedIndex(0);
 			unshiftcost.setEnabled(true);
+			unshiftcost.setModel(new DefaultComboBoxModel<String>(unshiftcosts));
 			return;
 		}
 		//if(selected.equals(decoders[1])) {
@@ -199,7 +204,8 @@ public class GUIThesis implements GUI {
 			training.setSelectedIndex(1);
 			afterend.setEnabled(false);
 			afterend.setSelectedIndex(0);
-			unshiftcost.setEnabled(false);
+			unshiftcost.setEnabled(true);
+			unshiftcost.setModel(new DefaultComboBoxModel<String>(nmreduceclasses));
 			return;
 		}
 		//if(selected.equals(decoders[0])) {

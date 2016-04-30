@@ -42,7 +42,7 @@ public class Reader {
 			fields[fieldID]=fields[fieldID].substring(fields[fieldID].lastIndexOf('_')+1);
 			@SuppressWarnings("unused")
 			String morph=fields[fieldMorph];  //need to parse the content before use
-			if(ApplicationControl.predictArcTag) {
+			if(ApplicationControl.predictArcTag || ApplicationControl.NonMonotonic) {
 				//only read id, form, lemma, pos, head information, arc-tag
 				wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],Integer.parseInt(fields[fieldHead]),fields[fieldRel]));
 			}

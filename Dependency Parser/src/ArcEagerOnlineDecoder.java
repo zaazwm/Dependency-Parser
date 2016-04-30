@@ -3,14 +3,18 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Random;
 
 public class ArcEagerOnlineDecoder {
 	public static int nLabel = 4;
 	public static final String transition3rdName = "Reduce"; 
-	public static final String transition4thName = "Unshift"; 
+	public static final String transition4thName = "Unshift-NMReduce"; 
 	private static int[] sentenceCount = new int[OnlinePerceptron.maxIter];
 	private static boolean useUnshift = false;
 	private static boolean useNMReduce = false;
@@ -23,6 +27,11 @@ public class ArcEagerOnlineDecoder {
 	private static final int printBeginIter = 1;
 	private static final int printEndIter = 15;
 	
+	private static HashMap<String, Integer> relCountMap = new HashMap<String, Integer>();
+	private static int automataState = 0;
+	
+//	public static int[] specialcounter = new int[4];
+	
 	//toPrint analysis-counts
 	private static int[][] printTransitionAnalysis = new int[OnlinePerceptron.maxIter+1][8];
 	//0:#LeftArc(headless), 1:#LeftArc(overwrite) 2:#RightArc(S(B)=0), 3:#RightArc(S(b)=1), 4:#Shift, 5:#Reduce, 6:#Unshift, 7:#2N
@@ -34,6 +43,7 @@ public class ArcEagerOnlineDecoder {
 	public static void buildConfiguration(Sentence st, OnlinePerceptron model, int iterationNumber) {
 		sentenceCount[iterationNumber-1]++;
 		printTransitionAnalysis[iterationNumber-1][7]+=2*(st.getWdList().size()-1);
+		automataState=0;
 				
 		State s = new State(st);
 		while(true) {
@@ -142,6 +152,80 @@ public class ArcEagerOnlineDecoder {
 				nlCorrect[Configuration.getConfToInt("NMReduce")]=costNMReduce(s);
 			}
 			nlCorrect[Configuration.getConfToInt("Shift")]=costShift(s);
+			
+			//DEBUG: find some example for cost of unshift
+//			if(nlCorrect[Configuration.getConfToInt("Unshift")]==1) {
+//				int countzerocost=0;
+//				for(int nlii=0;nlii<nlCorrect.length;nlii++) {
+//					if(nlCorrect[nlii]==0) {
+//						countzerocost++;
+//					}
+//				}
+//				int countzerocost2=0;
+//				for(int nlii=0;nlii<nlCorrect.length;nlii++) {
+////					System.out.print(nlCorrect[nlii]);
+//					if(nlCorrect[nlii]==0) {
+//						ApplicationControl.NonMonotonic=false;
+//						switch(nlii) {
+//						case 0:
+//							if(costShift(s)==0)
+//								countzerocost2++;
+////							System.out.print("\t"+costShift(s));
+//							break;
+//						case 1:
+//							if(costLeftArc(s)==0)
+//								countzerocost2++;
+////							System.out.print("\t"+costLeftArc(s));
+//							break;
+//						case 2:
+//							if(costRightArc(s)==0)
+//								countzerocost2++;
+////							System.out.print("\t"+costRightArc(s));
+//							break;
+//						case 3:
+//							if(costReduce(s)==0)
+//								countzerocost2++;
+////							System.out.print("\t"+costReduce(s)+"\tShould not reach!");
+//							break;
+//						default:
+//							break;
+//						}
+//						ApplicationControl.NonMonotonic=true;
+//					}
+////					System.out.println();
+//				}
+//				if(countzerocost>0 && countzerocost2==0) {
+//					for(int nlii=0;nlii<nlCorrect.length;nlii++) {
+//						//System.out.print(nlCorrect[nlii]);
+//						if(nlCorrect[nlii]==0) {
+//							ApplicationControl.NonMonotonic=false;
+//							switch(nlii) {
+//							case 0:
+//								//System.out.print("\t"+costShift(s));
+//								specialcounter[0]+=nlCorrect[nlii]==0?1:0;
+//								break;
+//							case 1:
+//								//System.out.print("\t"+costLeftArc(s));
+//								specialcounter[1]+=nlCorrect[nlii]==0?1:0;
+//								break;
+//							case 2:
+//								//System.out.print("\t"+costRightArc(s));
+//								specialcounter[2]+=nlCorrect[nlii]==0?1:0;
+//								break;
+//							case 3:
+//								System.out.print("\t"+costReduce(s)+"\tShould not reach!");
+//								break;
+//							default:
+//								break;
+//							}
+//							ApplicationControl.NonMonotonic=true;
+//						}
+//						//System.out.println();
+//					}
+//					//System.out.println();
+//				}
+//			}
+			//END OF DEBUG
 			
 //			if(ApplicationControl.OnlineStaticPerceptron) {
 //				nlCorrect[Configuration.getConfToInt("LeftArc")]=canLeftArc(s)?0:Integer.MAX_VALUE;
@@ -314,6 +398,8 @@ public class ArcEagerOnlineDecoder {
 				
 				//do leftarc
 				s.getStack().removeLast();
+				
+				automataState=0;
 			}
 			else if(nNext==Configuration.getConfToInt("RightArc")) {
 				//add configuration to list
@@ -329,8 +415,27 @@ public class ArcEagerOnlineDecoder {
 				
 				//do rightarc
 				s.getStack().add(s.getBuffer().removeFirst());
+				
+				if(iterationNumber==OnlinePerceptron.maxIter && automataState==1) {
+					automataState=2;
+				} else {
+					automataState=0;
+				}
 			}
 			else if(nNext==Configuration.getConfToInt("Reduce")) {
+				if(iterationNumber==OnlinePerceptron.maxIter && automataState==2) {
+					if(s.getHeads()[s.getStack().peekLast().getID()]==s.getStack().peekLast().getHead()) {
+						if(relCountMap.containsKey(s.getStack().peekLast().getRel())) {
+							relCountMap.put(s.getStack().peekLast().getRel(), relCountMap.get(s.getStack().peekLast().getRel())+1);
+						} else {
+							relCountMap.put(s.getStack().peekLast().getRel(), 1);
+						}
+					}
+					automataState=0;
+				} else {
+					automataState=0;
+				}
+				
 				//add configuration to list
 				if(toPrint)
 					conf = (new Configuration(s.clone(),st,"Reduce", null));
@@ -381,6 +486,12 @@ public class ArcEagerOnlineDecoder {
 				printTransitionAnalysis[iterationNumber-1][6]++;
 				//do unshift
 				s.getBuffer().addFirst(s.getStack().removeLast());
+				
+				if(iterationNumber==OnlinePerceptron.maxIter && automataState==0) {
+					automataState=1;
+				} else {
+					automataState=0;
+				}
 			}
 			else if(useNMReduce && nNext==Configuration.getConfToInt("NMReduce")) {
 				//system-3.5
@@ -390,6 +501,14 @@ public class ArcEagerOnlineDecoder {
 				//do NM-reduce
 				Word topWord = s.getStack().removeLast();
 				makeArc(s, s.getStack().peekLast().getID(), topWord.getID());
+				
+				if(iterationNumber==OnlinePerceptron.maxIter && topWord.getHead()==s.getStack().peekLast().getID()) {
+					if(relCountMap.containsKey(topWord.getRel())) {
+						relCountMap.put(topWord.getRel(), relCountMap.get(topWord.getRel())+1);
+					} else {
+						relCountMap.put(topWord.getRel(), 1);
+					}
+				}
 			}
 			else if(nNext==Configuration.getConfToInt("Shift")) {
 				//add configuration to list
@@ -402,6 +521,8 @@ public class ArcEagerOnlineDecoder {
 				//system-4
 				if(ApplicationControl.NonMonotonic && useUnshift)
 					s.setUnshift(s.getStack().peekLast().getID());
+				
+				automataState=0;
 			}
 			else { //should not reach
 				System.out.println("Cannot find perform transition!");
@@ -823,6 +944,24 @@ public class ArcEagerOnlineDecoder {
 			for(int j=0;j<6;j++) {
 				printTransitionAnalysis[i][j]=0;
 			}
+		}
+		
+		if(ApplicationControl.RelCount && (!relCountMap.isEmpty())) {
+			System.out.println("Rel Count NM-RE:");
+			ArrayList<String> sortList = new ArrayList<String>(relCountMap.keySet());
+			Collections.sort(sortList, new Comparator<String>() {
+
+				@Override
+				public int compare(String o1, String o2) {
+					return relCountMap.get(o2)-relCountMap.get(o1);
+				}
+				
+			});
+			for(String k : sortList) {
+				System.out.println(k+"\t"+relCountMap.get(k));
+			}
+			
+			relCountMap.clear();
 		}
 	}
 	
@@ -1298,19 +1437,10 @@ public class ArcEagerOnlineDecoder {
 			break;
 		case 6:
 		case 7:
-			//system-5 (infinity shifted)
-			dep_in_stack = false; 
-			for(Word w : s.getStack()) {
-				if(w.getHead()==s.getStack().peekLast().getID()) {
-					dep_in_stack=true;
-					break;
-				}
-			}
-			if(dep_in_stack)
-				break;
+			//system-5 (old shifted)
 			for(Word w : s.getBuffer()) {
 				if(s.getStack().peekLast().getHead()==w.getID()) {
-					cost=Integer.MAX_VALUE-1;
+					cost++;
 					break;
 				}
 			}
@@ -1320,6 +1450,7 @@ public class ArcEagerOnlineDecoder {
 			//zero-cost
 			break;
 		default:
+			System.out.println("Invalid unshift cost");
 			return Integer.MAX_VALUE;
 		}
 		
