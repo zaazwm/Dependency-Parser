@@ -75,8 +75,10 @@ public class Reader {
 			}
 			String[] fields = line.split("\t");
 			fields[fieldID]=fields[fieldID].substring(fields[fieldID].lastIndexOf('_')+1);
-			if(ApplicationControl.predictArcTag) {
+			if(ApplicationControl.predictArcTag || ApplicationControl.NonMonotonic) {
 				wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],-1,fields[fieldRel]));
+				if(ApplicationControl.RelCount && ApplicationControl.devMark)
+					wl.peekLast().setHead(Integer.parseInt(fields[fieldHead]), true);
 			}
 			else {
 				if(ApplicationControl.newPredArcTag)

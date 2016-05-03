@@ -14,6 +14,8 @@ public class Word {
 	private int _MPCID;
 	private int _MPChead;
 	private String _tag;
+	
+	private int _goldhead;
 	//to save information of each word/token
 	public Word(int id, String form, String lemma, String pos, String morph, int head, String rel) {
 		_ID=id;
@@ -27,6 +29,7 @@ public class Word {
 		_children=new LinkedList<Integer>();
 		_MPCID=-1;
 		_MPChead=-1;
+		_goldhead=-1;
 	}
 	
 	public Word(int id, String form, String lemma, String pos, int head, String rel) {
@@ -41,6 +44,7 @@ public class Word {
 		_children=new LinkedList<Integer>();
 		_MPCID=-1;
 		_MPChead=-1;
+		_goldhead=-1;
 	}
 	
 	public Word(int id, String form, String lemma, String pos, int head) {
@@ -55,6 +59,7 @@ public class Word {
 		_children=new LinkedList<Integer>();
 		_MPCID=-1;
 		_MPChead=-1;
+		_goldhead=-1;
 	}
 	
 	public Word(int id, String form, String lemma, String pos, int head, String tag, boolean marker) {
@@ -69,6 +74,7 @@ public class Word {
 		_children=new LinkedList<Integer>();
 		_MPCID=-1;
 		_MPChead=-1;
+		_goldhead=-1;
 	}
 	
 	public String toString() {
@@ -118,9 +124,17 @@ public class Word {
 	public int getHead() {
 		return _head;
 	}
+	
+	public int getHead(boolean gold) {
+		return _goldhead;
+	}
 
 	public void setHead(int _head) {
 		this._head = _head;
+	}
+	
+	public void setHead(int _head, boolean gold) {
+		this._goldhead = _head;
 	}
 
 	public String getRel() {

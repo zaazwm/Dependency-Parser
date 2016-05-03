@@ -550,6 +550,7 @@ public class ArcEagerOnlineDecoder {
 //		int transitioncount=0;
 //		ArrayList<String> transitionhistory = new ArrayList<String>();
 		//END OF DEBUG
+		automataState=0;
 		printTransitionAnalysis[OnlinePerceptron.maxIter][7]+=2*st.getWdList().size();
 		LinkedList<TransitionSequence> transSeq = new LinkedList<TransitionSequence>();
 		State s = new State(st);
@@ -613,6 +614,8 @@ public class ArcEagerOnlineDecoder {
 				
 				if(useUnshift)
 					s.setUnshift(s.getStack().peekLast().getID());
+				
+				automataState=0;
 			}
 			else if(bestTrans==1) {  //leftArc
 				if(s.getHeads()[s.getStack().peekLast().getID()]==-1)
@@ -632,6 +635,8 @@ public class ArcEagerOnlineDecoder {
 				st.getWdList().get(s.getStack().peekLast().getID()).setHead(s.getBuffer().peekFirst().getID());
 				//do leftarc
 				s.getStack().removeLast();
+				
+				automataState=0;
 			}
 			else if(bestTrans==2) {  //rightArc
 				if(s.getUnshift(s.getBuffer().peekFirst().getID()))
@@ -651,8 +656,26 @@ public class ArcEagerOnlineDecoder {
 				st.getWdList().get(s.getBuffer().peekFirst().getID()).setHead(s.getStack().peekLast().getID());
 				//do rightarc
 				s.getStack().add(s.getBuffer().removeFirst());
+				
+				if(automataState==1)
+					automataState=2;
+				else
+					automataState=0;
 			}
 			else if(bestTrans==3) {  //reduce
+				if(automataState==2) {
+					if(s.getStack().peekLast().getHead()==s.getStack().peekLast().getHead(true)) {
+						if(relCountMap.containsKey(s.getStack().peekLast().getRel())) {
+							relCountMap.put(s.getStack().peekLast().getRel(), relCountMap.get(s.getStack().peekLast().getRel())+1);
+						} else {
+							relCountMap.put(s.getStack().peekLast().getRel(), 1);
+						}
+					}
+					automataState=0;
+				} else {
+					automataState=0;
+				}
+				
 				//do reduce
 				if(ApplicationControl.NonMonotonic && !useUnshift && !useNMReduce && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
 					printTransitionAnalysis[OnlinePerceptron.maxIter][5]++;
@@ -667,6 +690,7 @@ public class ArcEagerOnlineDecoder {
 					
 					makeArc(s, s.getStack().peekLast().getID(), topWord.getID());
 					st.getWdList().get(topWord.getID()).setHead(s.getStack().peekLast().getID());
+					
 				} 
 				else {
 					if(useUnshift && s.getHeads()[s.getStack().peekLast().getID()]==-1) {
@@ -717,6 +741,8 @@ public class ArcEagerOnlineDecoder {
 				
 				//do unshift
 				s.getBuffer().addFirst(s.getStack().removeLast());
+				
+				automataState=0;
 			}
 			else if(useNMReduce && bestTrans==4) {  //NM-reduce
 				printTransitionAnalysis[OnlinePerceptron.maxIter][6]++;
@@ -729,6 +755,14 @@ public class ArcEagerOnlineDecoder {
 				//system-3.5
 				//do NM-reduce
 				Word topWord = s.getStack().removeLast();
+				
+				if(s.getStack().peekLast().getID()==topWord.getHead(true)) {
+					if(relCountMap.containsKey(topWord.getRel())) {
+						relCountMap.put(topWord.getRel(), relCountMap.get(topWord.getRel())+1);
+					} else {
+						relCountMap.put(topWord.getRel(), 1);
+					}
+				}
 				
 				makeArc(s, s.getStack().peekLast().getID(), topWord.getID());
 				st.getWdList().get(topWord.getID()).setHead(s.getStack().peekLast().getID());
