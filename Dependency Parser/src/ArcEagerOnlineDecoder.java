@@ -742,7 +742,7 @@ public class ArcEagerOnlineDecoder {
 				//do unshift
 				s.getBuffer().addFirst(s.getStack().removeLast());
 				
-				automataState=0;
+				automataState=1;
 			}
 			else if(useNMReduce && bestTrans==4) {  //NM-reduce
 				printTransitionAnalysis[OnlinePerceptron.maxIter][6]++;
