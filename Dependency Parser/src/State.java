@@ -65,9 +65,11 @@ public class State {
 	public Feature buildFeature(Sentence stc) {  //build feature with this state
 		String b0f = buffer.isEmpty()?null:buffer.getFirst().getForm();
 		String b0p = buffer.isEmpty()?null:buffer.getFirst().getPos();
+		String b0m = buffer.isEmpty()?null:buffer.getFirst().getMorph();
 		
 		String s0f = stack.isEmpty()?null:stack.getLast().getForm();
 		String s0p = stack.isEmpty()?null:stack.getLast().getPos();
+		String s0m = stack.isEmpty()?null:stack.getLast().getMorph();
 		
 		String b1f = buffer.size()>1?buffer.get(1).getForm():null;
 		String b1p = buffer.size()>1?buffer.get(1).getPos():null;
@@ -92,7 +94,7 @@ public class State {
 		String hd2s0f = heads[stack.getFirst().getID()]==-1?null:(heads[heads[stack.getFirst().getID()]]==-1?null:stc.getWdList().get(heads[heads[stack.getFirst().getID()]]).getForm());
 		String hd2s0p = heads[stack.getFirst().getID()]==-1?null:(heads[heads[stack.getFirst().getID()]]==-1?null:stc.getWdList().get(heads[heads[stack.getFirst().getID()]]).getPos());
 		
-		return new Feature(b0f, b0p, s0f, s0p, b1f, b1p, s1p, b2f, b2p, s2p, ldb0p, rdb0p, lds0p, rds0p, dist, hds0f, hds0p, lds0f, rds0f, ldb0f, hd2s0f, hd2s0p, -1, null);
+		return new Feature(b0f, b0p, s0f, s0p, b1f, b1p, s1p, b2f, b2p, s2p, ldb0p, rdb0p, lds0p, rds0p, dist, hds0f, hds0p, lds0f, rds0f, ldb0f, hd2s0f, hd2s0p, b0m, s0m, -1, null);
 	}
 
 	public LinkedList<Word> getBuffer() {

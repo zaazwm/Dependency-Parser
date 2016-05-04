@@ -66,12 +66,21 @@ public class Feature {
 	private String hd2S0p;  //original
 	private String S0pS0hpS0h2p;
 	
+	//morphology
+	private String B0Morph;  //ignore
+	private String S0Morph;  //ignore
+	private String B0mS0m;
+	private String B0pS0m;
+	private String B0mS0p;
+	private String B0mf;
+	private String S0mf;
+	
 	//public static final int nFeature = 7;
-	public static final int nFeature = 6+7+2+6+7+5+1+6+5+3;
+	public static final int nFeature = 6+7+2+6+7+5+1+6+5+3+5;
 	
 	private static final String sep = "-"; 
 	
-	public Feature(String b0f, String b0p, String s0f, String s0p, String b1f, String b1p, String s1p, String b2f, String b2p, String s2p, String ldb0p, String rdb0p, String lds0p, String rds0p, int dist, String hds0f, String hds0p, String lds0f, String rds0f, String ldb0f, String hd2s0f, String hd2s0p, String label, String tag) {
+	public Feature(String b0f, String b0p, String s0f, String s0p, String b1f, String b1p, String s1p, String b2f, String b2p, String s2p, String ldb0p, String rdb0p, String lds0p, String rds0p, int dist, String hds0f, String hds0p, String lds0f, String rds0f, String ldb0f, String hd2s0f, String hd2s0p, String b0m, String s0m, String label, String tag) {
 		B0Form=b0f;
 		B0Pos=b0p;
 		S0Form=s0f;
@@ -95,6 +104,9 @@ public class Feature {
 		ldB0f=ldb0f;
 		hd2S0f=hd2s0f;
 		hd2S0p=hd2s0p;
+		
+		B0Morph=b0f;
+		S0Morph=s0f;
 		
 		Label=label;
 		nLabel=Configuration.getConfToInt(Label);
@@ -103,7 +115,7 @@ public class Feature {
 		this.composeFeature();
 	}
 	
-	public Feature(String b0f, String b0p, String s0f, String s0p, String b1f, String b1p, String s1p, String b2f, String b2p, String s2p, String ldb0p, String rdb0p, String lds0p, String rds0p, int dist, String hds0f, String hds0p, String lds0f, String rds0f, String ldb0f, String hd2s0f, String hd2s0p, int label, String tag) {
+	public Feature(String b0f, String b0p, String s0f, String s0p, String b1f, String b1p, String s1p, String b2f, String b2p, String s2p, String ldb0p, String rdb0p, String lds0p, String rds0p, int dist, String hds0f, String hds0p, String lds0f, String rds0f, String ldb0f, String hd2s0f, String hd2s0p, String b0m, String s0m, int label, String tag) {
 		B0Form=b0f;
 		B0Pos=b0p;
 		S0Form=s0f;
@@ -127,6 +139,9 @@ public class Feature {
 		ldB0f=ldb0f;
 		hd2S0f=hd2s0f;
 		hd2S0p=hd2s0p;
+
+		B0Morph=b0f;
+		S0Morph=s0f;
 		
 		nLabel=label;
 		Label=Configuration.getConfToString(nLabel);
@@ -168,6 +183,12 @@ public class Feature {
 		S0pB0pd=(S0Pos+sep+B0Pos+sep+dist);
 		
 		S0pS0hpS0h2p=(S0Pos+sep+hdS0p+sep+hd2S0p);
+		
+		B0mS0m=B0Morph+sep+S0Morph;
+		B0pS0m=B0Pos+sep+S0Morph;
+		B0mS0p=B0Morph+sep+S0Pos;
+		B0mf=B0Morph+sep+B0Form;
+		S0mf=S0Morph+sep+S0Form;
 	}
 	
 	public String getValueOf(int index) {
@@ -291,6 +312,17 @@ public class Feature {
 			return hd2S0p;
 		case 47:
 			return S0pS0hpS0h2p;
+			
+		case 48:
+			return B0mS0m;
+		case 49:
+			return B0pS0m;
+		case 50:
+			return B0mS0p;
+		case 51:
+			return B0mf;
+		case 52:
+			return S0mf;
 			
 		default:
 			return null;
@@ -418,6 +450,17 @@ public class Feature {
 			return "hd2S0p";
 		case 47:
 			return "S0pS0hpS0h2p";
+			
+		case 48:
+			return "B0mS0m";
+		case 49:
+			return "B0pS0m";
+		case 50:
+			return "B0mS0p";
+		case 51:
+			return "B0mf";
+		case 52:
+			return "S0mf";
 			
 		default:
 			return null;

@@ -64,9 +64,11 @@ public class Configuration {
 	public Feature buildFeature() {  //build feature with this configuration
 		String b0f = st.getBuffer().isEmpty()?null:st.getBuffer().getFirst().getForm();
 		String b0p = st.getBuffer().isEmpty()?null:st.getBuffer().getFirst().getPos();
+		String b0m = st.getBuffer().isEmpty()?null:st.getBuffer().getFirst().getMorph();
 		
 		String s0f = st.getStack().isEmpty()?null:st.getStack().getLast().getForm();
 		String s0p = st.getStack().isEmpty()?null:st.getStack().getLast().getPos();
+		String s0m = st.getStack().isEmpty()?null:st.getStack().getLast().getMorph();
 		
 		String b1f = st.getBuffer().size()>1?st.getBuffer().get(1).getForm():null;
 		String b1p = st.getBuffer().size()>1?st.getBuffer().get(1).getPos():null;
@@ -92,7 +94,7 @@ public class Configuration {
 		String hd2s0f = st.getHeads()[st.getStack().getFirst().getID()]==-1?null:(st.getHeads()[st.getHeads()[st.getStack().getFirst().getID()]]==-1?null:stc.getWdList().get(st.getHeads()[st.getHeads()[st.getStack().getFirst().getID()]]).getForm());
 		String hd2s0p = st.getHeads()[st.getStack().getFirst().getID()]==-1?null:(st.getHeads()[st.getHeads()[st.getStack().getFirst().getID()]]==-1?null:stc.getWdList().get(st.getHeads()[st.getHeads()[st.getStack().getFirst().getID()]]).getPos());
 		
-		return new Feature(b0f, b0p, s0f, s0p, b1f, b1p, s1p, b2f, b2p, s2p, ldb0p, rdb0p, lds0p, rds0p, dist, hds0f, hds0p, lds0f, rds0f, ldb0f, hd2s0f, hd2s0p, conf, tag);
+		return new Feature(b0f, b0p, s0f, s0p, b1f, b1p, s1p, b2f, b2p, s2p, ldb0p, rdb0p, lds0p, rds0p, dist, hds0f, hds0p, lds0f, rds0f, ldb0f, hd2s0f, hd2s0p, b0m, s0m, conf, tag);
 	}
 	
 	public State getState() {

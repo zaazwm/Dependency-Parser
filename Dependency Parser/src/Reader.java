@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
 import java.util.LinkedList;
 
 import org.apache.commons.lang3.StringUtils;
@@ -40,18 +41,41 @@ public class Reader {
 			}
 			String[] fields = line.split("\t");
 			fields[fieldID]=fields[fieldID].substring(fields[fieldID].lastIndexOf('_')+1);
-			@SuppressWarnings("unused")
 			String morph=fields[fieldMorph];  //need to parse the content before use
+			if(morph.equals("_"))
+				morph=null;
+			else {
+				HashMap<String, String> morphMap = new HashMap<String, String>();
+				String[] morphCols = morph.split("\\|");
+				for(String col : morphCols) {
+					String[] pair = col.split("=");
+					morphMap.put(pair[0], pair[1]);
+				}
+				if(morphMap.containsKey("postype")) {
+					fields[fieldPos]=fields[fieldPos]+"."+morphMap.get("postype");
+					morph=morph.replaceFirst("\\|postype="+morphMap.get("postype"), "");
+					morph=morph.replaceFirst("postype="+morphMap.get("postype")+"\\|", "");
+					morph=morph.replaceFirst("postype="+morphMap.get("postype"), "");
+				}
+				if(morphMap.containsKey("punct")) {
+					fields[fieldPos]=fields[fieldPos]+"."+morphMap.get("punct");
+					morph=morph.replaceFirst("\\|punct="+morphMap.get("punct"), "");
+					morph=morph.replaceFirst("punct="+morphMap.get("punct")+"\\|", "");
+					morph=morph.replaceFirst("punct="+morphMap.get("punct"), "");
+				}
+				if(morph.isEmpty())
+					morph=null;
+			}
 			if(ApplicationControl.predictArcTag || ApplicationControl.NonMonotonic) {
 				//only read id, form, lemma, pos, head information, arc-tag
-				wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],Integer.parseInt(fields[fieldHead]),fields[fieldRel]));
+				wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],morph,Integer.parseInt(fields[fieldHead]),fields[fieldRel]));
 			}
 			else {
 				//only read id, form, lemma, pos, head information (or a special tag if will predict)
 				if(ApplicationControl.newPredArcTag)
 					wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],Integer.parseInt(fields[fieldHead]),fields[fieldRel],true));
 				else
-					wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],Integer.parseInt(fields[fieldHead])));
+					wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],morph,Integer.parseInt(fields[fieldHead])));
 				
 			}
 		}
@@ -75,8 +99,33 @@ public class Reader {
 			}
 			String[] fields = line.split("\t");
 			fields[fieldID]=fields[fieldID].substring(fields[fieldID].lastIndexOf('_')+1);
+			String morph=fields[fieldMorph];  //need to parse the content before use
+			if(morph.equals("_"))
+				morph=null;
+			else {
+				HashMap<String, String> morphMap = new HashMap<String, String>();
+				String[] morphCols = morph.split("\\|");
+				for(String col : morphCols) {
+					String[] pair = col.split("=");
+					morphMap.put(pair[0], pair[1]);
+				}
+				if(morphMap.containsKey("postype")) {
+					fields[fieldPos]=fields[fieldPos]+"."+morphMap.get("postype");
+					morph=morph.replaceFirst("\\|postype="+morphMap.get("postype"), "");
+					morph=morph.replaceFirst("postype="+morphMap.get("postype")+"\\|", "");
+					morph=morph.replaceFirst("postype="+morphMap.get("postype"), "");
+				}
+				if(morphMap.containsKey("punct")) {
+					fields[fieldPos]=fields[fieldPos]+"."+morphMap.get("punct");
+					morph=morph.replaceFirst("\\|punct="+morphMap.get("punct"), "");
+					morph=morph.replaceFirst("punct="+morphMap.get("punct")+"\\|", "");
+					morph=morph.replaceFirst("punct="+morphMap.get("punct"), "");
+				}
+				if(morph.isEmpty())
+					morph=null;
+			}
 			if(ApplicationControl.predictArcTag || ApplicationControl.NonMonotonic) {
-				wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],-1,fields[fieldRel]));
+				wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],morph,-1,fields[fieldRel]));
 				if(ApplicationControl.RelCount && ApplicationControl.devMark)
 					wl.peekLast().setHead(Integer.parseInt(fields[fieldHead]), true);
 			}
@@ -84,7 +133,7 @@ public class Reader {
 				if(ApplicationControl.newPredArcTag)
 					wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],Integer.parseInt(fields[fieldHead]),fields[fieldRel],true));
 				else
-					wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],-1));
+					wl.add(new Word(Integer.parseInt(fields[fieldID]),fields[fieldForm],fields[fieldLemma],fields[fieldPos],morph,-1));
 			}
 		}
 		

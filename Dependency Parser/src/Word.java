@@ -47,6 +47,21 @@ public class Word {
 		_goldhead=-1;
 	}
 	
+	public Word(int id, String form, String lemma, String pos, String morph, int head) {
+		_ID=id;
+		_form=form;
+		_lemma=lemma;
+		_pos=pos;
+		_morph=morph;
+		_head=head;
+		_rel=null;
+		_tag=null;
+		_children=new LinkedList<Integer>();
+		_MPCID=-1;
+		_MPChead=-1;
+		_goldhead=-1;
+	}
+	
 	public Word(int id, String form, String lemma, String pos, int head) {
 		_ID=id;
 		_form=form;
