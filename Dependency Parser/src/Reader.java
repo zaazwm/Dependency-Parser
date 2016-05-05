@@ -49,7 +49,8 @@ public class Reader {
 				String[] morphCols = morph.split("\\|");
 				for(String col : morphCols) {
 					String[] pair = col.split("=");
-					morphMap.put(pair[0], pair[1]);
+					if(pair.length>=2)
+						morphMap.put(pair[0], pair[1]);
 				}
 				if(morphMap.containsKey("postype")) {
 					fields[fieldPos]=fields[fieldPos]+"."+morphMap.get("postype");
@@ -107,7 +108,8 @@ public class Reader {
 				String[] morphCols = morph.split("\\|");
 				for(String col : morphCols) {
 					String[] pair = col.split("=");
-					morphMap.put(pair[0], pair[1]);
+					if(pair.length>=2)
+						morphMap.put(pair[0], pair[1]);
 				}
 				if(morphMap.containsKey("postype")) {
 					fields[fieldPos]=fields[fieldPos]+"."+morphMap.get("postype");
