@@ -42,7 +42,7 @@ public class Reader {
 			String[] fields = line.split("\t");
 			fields[fieldID]=fields[fieldID].substring(fields[fieldID].lastIndexOf('_')+1);
 			String morph=fields[fieldMorph];  //need to parse the content before use
-			if(morph.equals("_"))
+			if(morph.equals("_") || !ApplicationControl.useMorph)
 				morph=null;
 			else {
 				HashMap<String, String> morphMap = new HashMap<String, String>();
@@ -101,7 +101,7 @@ public class Reader {
 			String[] fields = line.split("\t");
 			fields[fieldID]=fields[fieldID].substring(fields[fieldID].lastIndexOf('_')+1);
 			String morph=fields[fieldMorph];  //need to parse the content before use
-			if(morph.equals("_"))
+			if(morph.equals("_") || !ApplicationControl.useMorph)
 				morph=null;
 			else {
 				HashMap<String, String> morphMap = new HashMap<String, String>();

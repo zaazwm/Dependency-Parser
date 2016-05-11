@@ -184,11 +184,20 @@ public class Feature {
 		
 		S0pS0hpS0h2p=(S0Pos+sep+hdS0p+sep+hd2S0p);
 		
-		B0mS0m=B0Morph+sep+S0Morph;
-		B0pS0m=B0Pos+sep+S0Morph;
-		B0mS0p=B0Morph+sep+S0Pos;
-		B0mf=B0Morph+sep+B0Form;
-		S0mf=S0Morph+sep+S0Form;
+		if(ApplicationControl.useMorph) {
+			B0mS0m=B0Morph+sep+S0Morph;
+			B0pS0m=B0Pos+sep+S0Morph;
+			B0mS0p=B0Morph+sep+S0Pos;
+			B0mf=B0Morph+sep+B0Form;
+			S0mf=S0Morph+sep+S0Form;
+		}
+		else {
+			B0mS0m=null;
+			B0pS0m=null;
+			B0mS0p=null;
+			B0mf=null;
+			S0mf=null;
+		}
 	}
 	
 	public String getValueOf(int index) {
