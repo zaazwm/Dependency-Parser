@@ -4,7 +4,7 @@ import java.util.HashMap;
 public abstract class OnlinePerceptron implements Serializable{
 	private static final long serialVersionUID = 2980548306205230812L;
 	
-	public static final int maxIter = 15;
+	public static int maxIter = 15;
 	protected static final double delta = 0.5D;
 
 	public abstract void inputFeature(Feature f, int correctLabel, int predictLabel, int[] correctLabelList);

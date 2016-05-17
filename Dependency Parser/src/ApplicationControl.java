@@ -91,6 +91,7 @@ public class ApplicationControl {
 		para.addOption("devanalysisfile", true, "filepath(<arg>) for dev analysis file");
 		para.addOption("RC", "RelCount", false, "DEBUG: only valid for NM-RE and 2C-Unshift-Head");
 		para.addOption("morph", false, "use Morphology data in corpus");
+		para.addOption("iter", true, "the iteration for training");
 		
 		CommandLine cl = parser.parse(para, args);
 		
@@ -221,6 +222,12 @@ public class ApplicationControl {
 		
 		if(cl.hasOption("devanalysisfile")) {
 			devAnalysisFile=cl.getOptionValue("devanalysisfile");
+		}
+		
+		if(cl.hasOption("iter")) {
+			int it = Integer.parseInt(cl.getOptionValue("iter"));
+			if(it>0)
+				OnlinePerceptron.maxIter=it;
 		}
 		
 		if(!CleanerOutput) {
@@ -865,4 +872,5 @@ public class ApplicationControl {
 		NumberFormat formatter = new DecimalFormat("00.00"); 
 		System.out.println("Result: "+countright+" : "+countfull+" = "+formatter.format(red)+"%");
 	}
+	
 }
