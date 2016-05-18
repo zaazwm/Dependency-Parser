@@ -80,6 +80,8 @@ public class WilCoxonTest {
 			return;
 		
 		String datapath = args[0];
+		if(datapath.charAt(0)=='\"' && datapath.charAt(datapath.length()-1)=='\"')
+			datapath=datapath.substring(1,datapath.length()-1);
 		
 		double[] x = CompareResultInnerDev(datapath, 0);
 		double[] y = CompareResultInnerDev(datapath, 1);
