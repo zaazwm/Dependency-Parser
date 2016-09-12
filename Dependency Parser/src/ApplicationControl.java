@@ -9,7 +9,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
+import java.util.Random;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -390,7 +393,7 @@ public class ApplicationControl {
 			opc = new DynamicPerceptron(ArcEagerOnlineDecoder.nLabel);
 		}
 		
-		LinkedList<Sentence> stList = new LinkedList<Sentence>();
+		ArrayList<Sentence> stList = new ArrayList<Sentence>();
 		
 		//read sentences and calc & save configurations
 		while(rd.hasNext()) {
@@ -443,6 +446,9 @@ public class ApplicationControl {
 //				ArcEagerOnlineDecoder.specialcounter[0]=0;
 //				ArcEagerOnlineDecoder.specialcounter[1]=0;
 //				ArcEagerOnlineDecoder.specialcounter[2]=0;
+				
+				Collections.shuffle(stList, new Random());
+				
 				for(Sentence st : stList) {
 					ArcEagerOnlineDecoder.buildConfiguration(st, opc, i);
 				}
